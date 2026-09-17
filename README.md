@@ -36,7 +36,7 @@ The Blueprint wires the Workflow slug automatically. Web services use `0.5c-512m
 ## What to try
 
 1. Run an example prompt. Follow the live task states.
-2. Open **Selection details** for TypeSafe’s probabilities and group winners.
+2. Compare TypeSafe’s probabilities in **Group 1**, **Group 2**, and **Final choice**. Expand **Inputs & response** to inspect the routing rule and model data.
 3. In **About this demo**, enable **Try a failed task**. Run again and expand **Run details** to see three answer attempts while earlier results remain available.
 
 **Models** opens the full, freshly fetched catalog. **Code** shows the actual Workflow definitions.

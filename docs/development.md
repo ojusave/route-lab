@@ -28,6 +28,10 @@ Together AI or another provider may need a separate catalog source, pricing meta
 
 The model policy is also in `shared/config.json`. It uses descriptions, context, capabilities, and prices. It cannot establish answer quality. TypeSafe’s observed 255-choice limit requires grouped selection; final probabilities apply only to group winners. Generation cost excludes TypeSafe and Render charges.
 
+The comparison view shows actual `Choice` probabilities as each Render task finishes. Each group has an independent distribution; the final round compares only group winners. The highest-probability option is selected. TypeSafe's `confidence` summarizes the distribution's concentration and differs from the winning option's probability. Neither measures answer quality. The API does not return a written rationale or per-feature attribution. See [Choice](https://docs.typesafe.ai/primitives/choice) and [Confidence](https://docs.typesafe.ai/confidence).
+
+**Inputs & response** uses the run's saved prompt and catalog metadata, including the 200-character description used by routing. The routing rule is labeled current because older runs do not snapshot instructions. The interface shows returned fields rather than generating an explanation after the decision. More explicit decision rules would require decomposing judgments and combining their results in code, as described in [TypeSafe primitives](https://docs.typesafe.ai/primitives).
+
 ## Deployment
 
 The root Blueprint deploys TypeScript. `python/render.yaml` deploys Python. Each web service serves a separate frontend build and calls its own Workflow. The two examples share frontend source and the routing policy, but have no runtime dependency on each other.

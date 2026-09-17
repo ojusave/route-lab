@@ -838,90 +838,93 @@ td strong {
   padding: 3px 6px;
   border-radius: 4px;
 }
-.card-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  color: var(--muted);
-  gap: 20px;
-}
-.card-label > span {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.pill {
-  font-size: 10px;
-}
-.selected-model {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 25px 0;
-}
-.selected-model code {
-  font-size: 11px;
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-.selected-model h2 {
-  margin: 5px 0 9px;
-}
-.selected-icon {
-  color: var(--accent);
-}
-.decision-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  padding: 20px 0;
+/* TypeSafe comparisons share one view across completed and live runs. */
+.selection {
   border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 25px;
+  padding-top: 24px;
+  margin-top: 28px;
 }
-.decision-stats span {
-  display: block;
-  font-size: 11px;
-  color: var(--muted);
-}
-.decision-stats strong {
-  display: block;
-  font-size: 23px;
-  font-weight: 500;
-  margin-top: 7px;
-}
-.decision-stats small {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--muted);
-}
-.finalists-heading {
+.selection-heading,
+.selection-scope {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
-  margin-bottom: 18px;
+  align-items: baseline;
+  gap: 12px;
 }
-.finalists-heading strong {
-  font-weight: 500;
+.selection-heading h2 {
+  font-size: 16px;
+  font-weight: 550;
 }
-.finalists-heading span {
+.selection-heading > span,
+.selection-scope {
+  font-size: 11px;
   color: var(--muted);
 }
-.probability {
-  display: grid;
-  grid-template-columns: 1fr 1fr 50px;
-  align-items: center;
-  gap: 18px;
-  margin-bottom: 16px;
-  font-size: 11px;
+.selection-rounds {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 18px 0 22px;
 }
-.probability > span {
+.selection-rounds button {
+  padding: 9px 13px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.selection-rounds button[aria-pressed="true"] {
+  background: #ece7f5;
+  color: #58369a;
+}
+.selection-rounds button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.selection-scope {
+  margin-bottom: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.selection-ranking {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.selection-ranking.expanded {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+.selection-ranking li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(80px, 0.8fr) 52px;
+  align-items: center;
+  gap: 16px;
+  min-height: 38px;
+  font-size: 12px;
+}
+.selection-model {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.selection-model > span {
   overflow-wrap: anywhere;
 }
-.probability strong {
+.selection-model svg {
+  flex-shrink: 0;
+}
+.selection-ranking strong {
   text-align: right;
-  font-weight: 500;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.selection-ranking .chosen {
+  color: #58369a;
+}
+.selection-ranking .chosen strong,
+.selection-ranking .chosen .selection-model {
+  font-weight: 550;
 }
 .bar-track {
   background: #eee;
@@ -931,40 +934,85 @@ td strong {
 }
 .bar-track > div {
   height: 100%;
-  background: #bababa;
+  background: #aaa;
 }
-.bar-track .winner {
+.chosen .bar-track > div {
   background: var(--accent);
 }
-.round-details {
-  border-top: 1px solid var(--line);
-  padding-top: 20px;
-  margin-top: 22px;
-  font-size: 12px;
-}
-.round-details summary {
-  cursor: pointer;
-  color: #666;
-}
-.round-details > summary {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.round-details p {
-  margin: 15px 0;
+.selection-note {
+  margin-top: 12px;
+  font-size: 11px;
+  line-height: 1.7;
   color: var(--muted);
 }
-.round-details details {
-  margin: 16px 0;
+.selection-note a {
+  text-decoration: underline;
+}
+.selection-pending {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.selection-inspect {
+  font-size: 12px;
+  margin-top: 16px;
+}
+.selection-inspect summary {
+  padding: 8px 0;
+  cursor: pointer;
+  color: #555;
+}
+.selection-inputs {
+  padding: 16px 0 0;
+}
+.selection-inputs h3,
+.selection-inputs label {
+  display: block;
+  font-size: 12px;
+  font-weight: 550;
+  margin: 0 0 8px;
+}
+.selection-inputs > p {
+  line-height: 1.7;
+  margin-bottom: 20px;
+  overflow-wrap: anywhere;
+}
+.selection-inputs select {
+  max-width: 100%;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+  font: inherit;
+}
+.selection-model-id {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.selection-metadata {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 18px 0;
+}
+.selection-metadata dt {
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.selection-metadata dd {
+  font-size: 12px;
 }
 .raw-scroll {
   max-height: 300px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-.round-details pre {
-  font-size: 10px;
 }
 .spin {
   animation: spin 1s linear infinite;
@@ -1061,22 +1109,27 @@ td strong {
   .about-panel dd {
     margin-bottom: 12px;
   }
-  .decision-stats {
-    gap: 12px;
+  .selection-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
   }
-  .decision-stats strong {
-    font-size: 19px;
-  }
-  .decision-stats span {
-    font-size: 10px;
-  }
-  .probability {
-    grid-template-columns: 1.2fr 1fr 42px;
+  .selection-ranking li {
+    grid-template-columns: minmax(0, 1fr) 72px 45px;
     gap: 10px;
-  }
-  .finalists-heading {
-    gap: 12px;
     font-size: 11px;
+    min-height: 44px;
+  }
+  .selection-rounds button {
+    min-height: 44px;
+    padding: 8px 11px;
+  }
+  .selection-inspect summary {
+    min-height: 44px;
+    padding-top: 14px;
+  }
+  .selection-metadata {
+    grid-template-columns: repeat(2, 1fr);
   }
   .live-groups {
     gap: 12px;
@@ -1150,12 +1203,6 @@ td strong {
   }
   .answer-receipt {
     font-size: 10px;
-  }
-  .decision-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .selected-model h2 {
-    font-size: 19px;
   }
   .live-groups {
     grid-template-columns: 1fr;

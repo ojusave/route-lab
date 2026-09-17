@@ -42,9 +42,7 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [pollVersion, setPollVersion] = useState(0);
   const generation = useRef(0);
-  const [panel, setPanel] = useState<
-    "models" | "code" | "about" | "decision" | null
-  >(null);
+  const [panel, setPanel] = useState<"models" | "code" | "about" | null>(null);
 
   async function refreshCatalog() {
     const gen = ++generation.current;
@@ -292,19 +290,14 @@ export default function App() {
             </button>
           </div>
         )}
-        {decision && (
+        {run && <Decision key={run.id} run={run} language={language} />}
+        {decision && (answer || busy) && (
           <section className="result" aria-label="Selected model and answer">
             <div className="result-heading">
               <div>
-                <span className="muted">TypeSafe picked</span>
-                <h2>{decision.model.name}</h2>
+                <span className="muted">{decision.model.name}</span>
+                <h2>Answer</h2>
               </div>
-              <button
-                className="text-button"
-                onClick={() => setPanel("decision")}
-              >
-                Selection details <ArrowUpRight size={14} />
-              </button>
             </div>
             {answer ? (
               <>
@@ -366,11 +359,6 @@ export default function App() {
             refresh={refreshCatalog}
             error={catalogError}
           />
-        </Panel>
-      )}
-      {panel === "decision" && decision && (
-        <Panel title="Model selection" close={() => setPanel(null)}>
-          <Decision decision={decision} busy={busy} />
         </Panel>
       )}
       {panel === "code" && (
