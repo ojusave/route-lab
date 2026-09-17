@@ -173,9 +173,7 @@ export default function App() {
       </header>
       <main className={run || busy ? "has-run" : "welcome"}>
         <div className="intro">
-          <span className="demo-label">RENDER WORKFLOWS × TYPESAFE AI</span>
-          <h1>One prompt. Every step, live.</h1>
-          <p>Render runs the tasks. TypeSafe picks the model.</p>
+          <h1>Ask a question</h1>
         </div>
         <form className="composer" onSubmit={submit}>
           <label htmlFor="prompt" className="sr-only">
@@ -406,7 +404,6 @@ export default function App() {
       {panel === "about" && (
         <Panel title="How it works" close={() => setPanel(null)}>
           <div className="about-panel">
-            <h2>One prompt, three services.</h2>
             <dl>
               <dt>TypeSafe AI</dt>
               <dd>

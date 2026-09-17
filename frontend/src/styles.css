@@ -167,11 +167,6 @@ h1 {
   letter-spacing: -1.25px;
   font-weight: 550;
 }
-.intro p {
-  font-size: 14px;
-  color: var(--muted);
-  margin-top: 13px;
-}
 .composer {
   background: var(--panel);
   border: 1px solid #d9d9d9;
@@ -1020,11 +1015,6 @@ td strong {
     font-size: 28px;
     letter-spacing: -0.9px;
   }
-  .intro p {
-    font-size: 12px;
-    max-width: 280px;
-    margin: 12px auto 0;
-  }
   .composer textarea {
     min-height: 112px;
     font-size: 14px;
@@ -1191,15 +1181,6 @@ td strong {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-.demo-label {
-  display: block;
-  font-size: 9px;
-  letter-spacing: 1.4px;
-  color: var(--accent);
-  margin-bottom: 15px;
-  font-weight: 500;
 }
 
 .workflow-heading {
