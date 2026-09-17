@@ -15,6 +15,8 @@ TypeSafe returns a typed model choice. OpenRouter generates the answer.
 
 </div>
 
+![Live Render tasks and an answer selected with TypeSafe](docs/demo.jpg)
+
 ## Deploy an example
 
 Each example creates its own **paid web service and Workflow**.

@@ -34,7 +34,7 @@ The root Blueprint deploys TypeScript. `python/render.yaml` deploys Python. Each
 
 Provider keys stay on the Workflow. The web service needs a Render API key and a Workflow slug. The Blueprint supplies the slug through `fromService`. Auto-deploy is off.
 
-This demo has no user authentication or shared spending quota. Use provider spending limits or add access controls for unrestricted public traffic. External provider calls are not exactly once: a retry after an ambiguous timeout can incur another charge.
+Run IDs act as shareable links to prompts and results. Each app rejects runs belonging to another Workflow. This demo has no user authentication or shared spending quota. Use provider spending limits or add access controls for unrestricted public traffic. External provider calls are not exactly once: a retry after an ambiguous timeout can incur another charge.
 
 ## Checks
 
@@ -46,7 +46,7 @@ render blueprints validate render.yaml -o json
 render blueprints validate python/render.yaml -o json
 ```
 
-With local servers running, `node tests/live-smoke.mjs` and `node tests/failure-smoke.mjs` use real provider credits. Evidence files under `tests/` record the runs. Local task history disappears when the CLI task server stops. Launcher logs are in ignored `work/dev.log`.
+With local servers running, `node tests/live-smoke.mjs` and `node tests/failure-smoke.mjs` use real provider credits. Evidence files under `tests/` record local and hosted runs. Both hosted examples completed real 439-model runs and deliberate three-attempt failures on September 17, 2026. `cloud-deployment-evidence.json` records their resources and deployed revisions. Local task history disappears when the CLI task server stops. Launcher logs are in ignored `work/dev.log`.
 
 ## Forking
 
