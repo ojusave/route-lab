@@ -1,0 +1,39 @@
+{
+  "name": "route-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "tsc --noEmit && vite build --mode typescript && vite build --mode python",
+    "check": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "start:api": "tsx typescript/src/server.ts",
+    "start:workflow": "tsx typescript/src/workflow.ts",
+    "dev:typescript": "node scripts/dev.mjs typescript",
+    "dev:python": "node scripts/dev.mjs python",
+    "build:typescript": "tsc --noEmit && vite build --mode typescript",
+    "build:python": "vite build --mode python",
+    "configure:repo": "tsx scripts/configure-repo.ts"
+  },
+  "dependencies": {
+    "@renderinc/sdk": "1.1.0",
+    "@typesafe-ai/sdk": "0.6.0",
+    "express": "5.2.1",
+    "lucide-react": "1.46.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-markdown": "10.1.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/express": "5.0.6",
+    "@types/node": "26.6.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2",
+    "vite": "8.3.0"
+  }
+}

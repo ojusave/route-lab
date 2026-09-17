@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.venv/
+__pycache__/
+.env
+.env.*
+!.env.example
+*.log
+
+.env.local
+.ruff_cache/
+work/
+
+.DS_Store

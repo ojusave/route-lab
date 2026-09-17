@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+# Typescript example: one paid web service and one usage-billed workflow.
+# Commands run from the repository root. Do not set rootDir.
+services:
+  - type: web
+    name: route-lab-typescript-web
+    runtime: node
+    repo: https://github.com/ojusave/route-lab
+    region: oregon
+    plan: 0.5c-512mb
+    autoDeployTrigger: off
+    buildCommand: npm ci --include=dev && npm run build:typescript
+    startCommand: npm run start:api
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "10000"
+      - key: RENDER_API_KEY
+        sync: false
+      - key: RENDER_WORKFLOW_SLUG
+        fromService:
+          type: workflow
+          name: route-lab-typescript
+          property: slug
+
+  - type: workflow
+    name: route-lab-typescript
+    runtime: node
+    repo: https://github.com/ojusave/route-lab
+    region: oregon
+    autoDeployTrigger: off
+    buildCommand: npm ci --include=dev
+    startCommand: npm run start:workflow
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: TYPESAFE_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false

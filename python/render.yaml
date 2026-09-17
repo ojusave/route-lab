@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+# Python example: one paid web service and one usage-billed workflow.
+# Commands run from the repository root. Do not set rootDir.
+services:
+  - type: web
+    name: route-lab-python-web
+    runtime: python
+    repo: https://github.com/ojusave/route-lab
+    region: oregon
+    plan: 0.5c-512mb
+    autoDeployTrigger: off
+    buildCommand: pip install uv && uv sync --project python --frozen && npm ci --include=dev && npm run build:python
+    startCommand: cd python && .venv/bin/python -m uvicorn app.server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: PYTHON_VERSION
+        value: 3.13.7
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "10000"
+      - key: RENDER_API_KEY
+        sync: false
+      - key: RENDER_WORKFLOW_SLUG
+        fromService:
+          type: workflow
+          name: route-lab-python
+          property: slug
+
+  - type: workflow
+    name: route-lab-python
+    runtime: python
+    repo: https://github.com/ojusave/route-lab
+    region: oregon
+    autoDeployTrigger: off
+    buildCommand: pip install uv && uv sync --project python --frozen
+    startCommand: cd python && .venv/bin/python -m app.workflow
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: PYTHON_VERSION
+        value: 3.13.7
+      - key: TYPESAFE_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
