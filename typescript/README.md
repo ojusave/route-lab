@@ -1,5 +1,7 @@
 # Render Workflows + TypeSafe AI: TypeScript
 
+**[Open the live demo](https://route-lab-typescript-web.onrender.com)**
+
 Run parallel model comparisons, make a typed choice, and generate an answer. This example deploys independently.
 
 [![Render Workflows](https://img.shields.io/badge/Render-Workflows-6e40c9?logo=render&logoColor=white)](https://render.com/docs/workflows)

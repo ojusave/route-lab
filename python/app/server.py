@@ -58,7 +58,10 @@ async def start(body: Input):
 async def get_run(run_id: str):
     if not run_id.replace("-", "").replace("_", "").isalnum() or len(run_id) > 100:
         raise HTTPException(400, "Invalid run ID.")
-    return await read_run(run_id)
+    try:
+        return await read_run(run_id)
+    except LookupError:
+        raise HTTPException(404, "Run not found.")
 
 
 @app.exception_handler(Exception)

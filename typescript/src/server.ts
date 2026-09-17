@@ -1,7 +1,7 @@
 import express from "express";
 import { provider } from "./provider";
 import { z } from "zod";
-import { render, readRun, workflow } from "./runs";
+import { render, readRun, workflow, RunNotFound } from "./runs";
 import { fileURLToPath } from "node:url";
 
 const app = express();
@@ -57,11 +57,15 @@ app.get("/api/runs/:id", async (req, res) => {
 });
 app.use(
   (
-    _err: unknown,
+    err: unknown,
     _req: express.Request,
     res: express.Response,
     _next: express.NextFunction,
   ) => {
+    if (err instanceof RunNotFound) {
+      res.status(404).json({ error: "Run not found." });
+      return;
+    }
     res.status(502).json({
       error:
         "Cannot reach the workflow run. Check that the task server is running, then reconnect.",

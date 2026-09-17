@@ -11,7 +11,7 @@ TypeSafe returns a typed model choice. OpenRouter generates the answer.
 [![TypeSafe AI](https://img.shields.io/badge/TypeSafe_AI-Model_selection-18181b)](https://docs.typesafe.ai/primitives/choice)
 [![OpenRouter](https://img.shields.io/badge/OpenRouter-Models-555555?logo=openrouter&logoColor=white)](https://openrouter.ai)
 
-[TypeScript](typescript/README.md) · [Python](python/README.md)
+[Try TypeScript](https://route-lab-typescript-web.onrender.com) · [Try Python](https://route-lab-python-web.onrender.com) · [Source setup](#deploy-an-example)
 
 </div>
 
@@ -19,7 +19,7 @@ TypeSafe returns a typed model choice. OpenRouter generates the answer.
 
 Each example creates its own **paid web service and Workflow**.
 
-| TypeScript | Python |
+| [TypeScript](typescript/README.md) | [Python](python/README.md) |
 | --- | --- |
 | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fojusave%2Froute-lab&utm_source=github&utm_medium=referral&utm_campaign=ojus_demos&utm_content=readme_deploy_typescript) | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fojusave%2Froute-lab&utm_source=github&utm_medium=referral&utm_campaign=ojus_demos&utm_content=readme_deploy_python) |
 | Blueprint Path: `render.yaml` | Blueprint Path: `python/render.yaml` |

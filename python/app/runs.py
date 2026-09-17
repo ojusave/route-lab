@@ -4,11 +4,13 @@ import httpx
 from render import RenderAsync
 
 render = RenderAsync()
-TASK_NAMES = {}
+TASKS = {}
+WORKFLOW_ID = None
 WORKFLOW = os.getenv("RENDER_WORKFLOW_SLUG", "route-lab-python")
 
 
 async def read_run(run_id: str) -> dict:
+    global WORKFLOW_ID
     root = (await render.workflows.get_task_run(run_id)).to_dict()
     # The Python SDK's list helper does not yet expose rootTaskRunId; use the documented REST filter.
     base = os.getenv("RENDER_LOCAL_DEV_URL", "https://api.render.com")
@@ -17,6 +19,23 @@ async def read_run(run_id: str) -> dict:
         if os.getenv("RENDER_API_KEY")
         else {}
     )
+    async with httpx.AsyncClient(timeout=10, headers=headers) as client:
+        if root["taskId"] not in TASKS:
+            metadata = await client.get(f"{base}/v1/tasks/{root['taskId']}")
+            metadata.raise_for_status()
+            TASKS[root["taskId"]] = metadata.json()
+        task = TASKS[root["taskId"]]
+        if task["name"] != "answer_prompt" or root.get("parentTaskRunId"):
+            raise LookupError("Run not found.")
+        if not os.getenv("RENDER_LOCAL_DEV_URL"):
+            if not WORKFLOW_ID:
+                matching = await client.get(f"{base}/v1/tasks", params={"taskSlug": f"{WORKFLOW}/answer_prompt", "limit": 1})
+                matching.raise_for_status()
+                entries = matching.json()
+                WORKFLOW_ID = entries[0]["task"].get("workflowId") if entries else None
+            # Keep runs from other workflows out of this public endpoint.
+            if not WORKFLOW_ID or task.get("workflowId") != WORKFLOW_ID:
+                raise LookupError("Run not found.")
     async with httpx.AsyncClient(timeout=15) as client:
         response = await client.get(
             f"{base}/v1/task-runs",
@@ -34,13 +53,13 @@ async def read_run(run_id: str) -> dict:
         for r in await asyncio.gather(*(render.workflows.get_task_run(i) for i in ids))
     ]
     async with httpx.AsyncClient(timeout=10, headers=headers) as client:
-        for task_id in {r["taskId"] for r in children} - TASK_NAMES.keys():
+        for task_id in {r["taskId"] for r in children} - TASKS.keys():
             metadata = await client.get(f"{base}/v1/tasks/{task_id}")
             metadata.raise_for_status()
-            TASK_NAMES[task_id] = metadata.json()["name"]
+            TASKS[task_id] = metadata.json()
     steps = []
     for r in sorted(children, key=lambda r: r.get("startedAt") or ""):
-        name = TASK_NAMES[r["taskId"]]
+        name = TASKS[r["taskId"]]["name"]
         steps.append(
             dict(
                 id=r["id"],

@@ -256,7 +256,7 @@ export default function App() {
             </button>
           </p>
         )}
-        <Workflow run={run} busy={busy} mode={health?.mode || "local"} />
+        <Workflow run={run} busy={busy} mode={health?.mode || "connecting"} />
         {error && (
           <div className="error-banner" role="alert">
             <strong>Couldn’t connect</strong>

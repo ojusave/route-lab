@@ -5,24 +5,51 @@ export const render = new Render();
 export const workflow =
   process.env.RENDER_WORKFLOW_SLUG || "route-lab-typescript";
 
-const taskNames = new Map<string, string>();
-async function taskName(id: string) {
-  if (taskNames.has(id)) return taskNames.get(id)!;
+type TaskMetadata = { name: string; workflowId?: string };
+const tasks = new Map<string, TaskMetadata>();
+let workflowId: string | undefined;
+export class RunNotFound extends Error {}
+
+async function readMetadata(path: string) {
   const base = process.env.RENDER_LOCAL_DEV_URL || "https://api.render.com";
-  const response = await fetch(`${base}/v1/tasks/${id}`, {
+  const response = await fetch(`${base}/v1/${path}`, {
     headers: process.env.RENDER_API_KEY
       ? { Authorization: `Bearer ${process.env.RENDER_API_KEY}` }
       : {},
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error("Task metadata unavailable.");
-  const data = await response.json();
-  taskNames.set(id, data.name);
-  return data.name as string;
+  return response.json();
+}
+
+async function taskMetadata(id: string): Promise<TaskMetadata> {
+  if (!tasks.has(id)) tasks.set(id, await readMetadata(`tasks/${id}`));
+  return tasks.get(id)!;
+}
+
+async function verifyDemoRun(root: {
+  taskId: string;
+  parentTaskRunId?: string;
+}) {
+  const metadata = await taskMetadata(root.taskId);
+  if (metadata.name !== "answer_prompt" || root.parentTaskRunId)
+    throw new RunNotFound();
+  if (!process.env.RENDER_LOCAL_DEV_URL) {
+    if (!workflowId) {
+      const matching = await readMetadata(
+        `tasks?taskSlug=${encodeURIComponent(`${workflow}/answer_prompt`)}&limit=1`,
+      );
+      workflowId = matching[0]?.task?.workflowId;
+    }
+    // A public endpoint must not expose runs from other workflows in this account.
+    if (!workflowId || metadata.workflowId !== workflowId)
+      throw new RunNotFound();
+  }
 }
 
 export async function readRun(id: string): Promise<Run> {
   const root = await render.workflows.getTaskRun(id);
+  await verifyDemoRun(root);
   const listed = await render.workflows.listTaskRuns({
     rootTaskRunId: [id],
     limit: 100,
@@ -36,7 +63,7 @@ export async function readRun(id: string): Promise<Run> {
     children
       .sort((a, b) => (a.startedAt ?? "").localeCompare(b.startedAt ?? ""))
       .map(async (r) => {
-        const name = await taskName(r.taskId);
+        const { name } = await taskMetadata(r.taskId);
         const input = r.input as unknown[];
         return {
           id: r.id,

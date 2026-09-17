@@ -40,7 +40,7 @@ export default function Workflow({
   const retrying = current.find((s) => s.attempts.length > 1);
   const failed = run?.status === "failed";
   let headline = "";
-  if (busy && !run) headline = "Sending your prompt to Render…";
+  if (busy && !run) headline = "Connecting to Render…";
   else if (failed) headline = "Task failed. Completed steps are saved.";
   else if (run?.answer) headline = "Answer ready.";
   else if (retrying)
@@ -74,7 +74,13 @@ export default function Workflow({
           <img src="/render-mark.svg" alt="" />
           Render Workflows
         </span>
-        <span>{mode === "cloud" ? "Live task execution" : "Local SDK"}</span>
+        <span>
+          {mode === "cloud"
+            ? "Live task execution"
+            : mode === "local"
+              ? "Local SDK"
+              : "Connecting…"}
+        </span>
       </div>
       {(busy || run) && (
         <div
