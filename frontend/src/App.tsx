@@ -1,17 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowDown,
-  ArrowRight,
+  ArrowUp,
   ArrowUpRight,
-  Braces,
   Check,
   Copy,
-  GitBranch,
   LoaderCircle,
-  Play,
   RotateCcw,
-  Terminal,
-  Zap,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { Catalog as ModelCatalog, Run } from "../../shared/types";
@@ -48,7 +42,9 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [pollVersion, setPollVersion] = useState(0);
   const generation = useRef(0);
-  const [panel, setPanel] = useState<"models" | "code" | null>(null);
+  const [panel, setPanel] = useState<
+    "models" | "code" | "about" | "decision" | null
+  >(null);
 
   async function refreshCatalog() {
     const gen = ++generation.current;
@@ -152,13 +148,6 @@ export default function App() {
       setBusy(false);
     }
   }
-  const eligible =
-    catalog?.models.filter(
-      (m) =>
-        m.eligible &&
-        m.contextLength >= new TextEncoder().encode(prompt).length + 2000,
-    ).length ?? 0;
-  const groups = Math.ceil(eligible / 200);
   const decision = run?.decision ?? null;
   const answer = run?.answer;
 
@@ -166,181 +155,286 @@ export default function App() {
     <>
       <header className="topbar">
         <a className="brand" href="/" aria-label="Route Lab home">
-          <span className="brand-symbol">
-            <GitBranch size={21} />
-          </span>
-          <span>
-            route<span className="brand-light">lab</span>
-            <span className="brand-slash"> / </span>
-            <span className="brand-demo">interactive demo</span>
-          </span>
+          <img src="/render-mark.svg" alt="" width="22" height="22" />
+          <span>Route Lab</span>
         </a>
         <nav aria-label="Main navigation">
           <button onClick={() => setPanel("models")}>Models</button>
-          <button onClick={() => setPanel("code")}>Code</button>
+          <button
+            onClick={() => {
+              setCodeLanguage(language);
+              setPanel("code");
+            }}
+          >
+            Code
+          </button>
           <ProjectLinks language={language} />
         </nav>
       </header>
-      <main>
+      <main className={run || busy ? "has-run" : "welcome"}>
         <div className="intro">
-          <div>
-            <span className="eyebrow">TYPESAFE AI × RENDER WORKFLOWS</span>
-            <h1>
-              Which model should answer<span className="lime">?</span>
-            </h1>
-          </div>
-          <button
-            type="button"
-            onClick={() => setPanel("models")}
-            className="catalog-counter"
-          >
-            <span className="live-indicator" />
-            <div>
-              <strong>{catalog?.models.length ?? "..."}</strong>
-              <span>models in the live catalog</span>
-            </div>
-            <ArrowUpRight size={18} />
-          </button>
+          <span className="demo-label">RENDER WORKFLOWS × TYPESAFE AI</span>
+          <h1>One prompt. Every step, live.</h1>
+          <p>Render runs the tasks. TypeSafe picks the model.</p>
         </div>
-        <div className="workspace">
-          <aside className="composer-column">
-            <form className="composer" onSubmit={submit}>
-              <div className="card-label">
-                <span>
-                  <Terminal size={16} />
-                  YOUR PROMPT
-                </span>
-                <span className="tiny">01 / INPUT</span>
-              </div>
-              <label htmlFor="prompt" className="composer-title">
-                Enter a prompt
-              </label>
-              <textarea
-                id="prompt"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                maxLength={6000}
-                placeholder="Ask a question, solve a problem, or write some code..."
-                disabled={busy}
-              />
-              <div className="input-footer">
-                <span>Try an example</span>
-                <span>{prompt.length.toLocaleString()} / 6,000</span>
-              </div>
-              <div className="examples">
-                {config.examples.map((ex, i) => (
+        <form className="composer" onSubmit={submit}>
+          <label htmlFor="prompt" className="sr-only">
+            Your prompt
+          </label>
+          <textarea
+            id="prompt"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            maxLength={6000}
+            placeholder="Ask a question, write some code, or solve a problem…"
+            disabled={busy}
+          />
+          <div className="composer-actions">
+            {example ? (
+              <span className="sdk-badge">
+                {example === "python" ? "Python" : "TypeScript"}
+              </span>
+            ) : (
+              <div
+                className="segmented"
+                role="group"
+                aria-label="Backend language"
+              >
+                {(["typescript", "python"] as const).map((value) => (
                   <button
                     type="button"
-                    key={ex.label}
+                    key={value}
+                    aria-pressed={language === value}
+                    className={language === value ? "chosen" : ""}
+                    onClick={() => changeLanguage(value)}
                     disabled={busy}
-                    onClick={() => setPrompt(ex.prompt)}
                   >
-                    <span>{String(i + 1).padStart(2, "0")}</span>
-                    {ex.label}
-                    <ArrowUpRight size={14} />
+                    {value === "python" ? "Python" : "TypeScript"}
                   </button>
                 ))}
               </div>
-              {!example && (
+            )}
+            <button
+              className="run-button"
+              disabled={busy || !prompt.trim()}
+              type="submit"
+            >
+              {busy ? (
                 <>
-                  <div className="sdk-label">
-                    <span>Backend</span>
-                    <span>Same steps, either language</span>
-                  </div>
-                  <div
-                    className="segmented"
-                    role="group"
-                    aria-label="Backend language"
-                  >
-                    <button
-                      type="button"
-                      aria-pressed={language === "typescript"}
-                      className={language === "typescript" ? "chosen" : ""}
-                      onClick={() => changeLanguage("typescript")}
-                      disabled={busy}
-                    >
-                      <span className="ts-icon">TS</span>TypeScript
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={language === "python"}
-                      className={language === "python" ? "chosen" : ""}
-                      onClick={() => changeLanguage("python")}
-                      disabled={busy}
-                    >
-                      <span className="py-icon">Py</span>Python
-                    </button>
-                  </div>
+                  <LoaderCircle size={16} className="spin" /> Running
+                </>
+              ) : (
+                <>
+                  Run prompt <ArrowUp size={16} />
                 </>
               )}
-              {example && (
-                <p className="example-label">
-                  {example === "python" ? "Python" : "TypeScript"} example
-                </p>
-              )}
+            </button>
+          </div>
+        </form>
+        {!run && !busy && (
+          <div className="examples" aria-label="Example prompts">
+            {config.examples.map((ex) => (
               <button
-                className="run-button"
-                disabled={busy || !prompt.trim()}
-                type="submit"
+                type="button"
+                key={ex.label}
+                onClick={() => {
+                  setPrompt(ex.prompt);
+                  document.getElementById("prompt")?.focus();
+                }}
               >
-                {busy ? (
-                  <>
-                    <LoaderCircle size={18} className="spin" />
-                    Workflow running
-                  </>
-                ) : (
-                  <>
-                    Run prompt
-                    <ArrowRight size={19} />
-                  </>
-                )}
+                {ex.label}
+                <ArrowUpRight size={13} />
               </button>
-              <p className="sending-note">
-                Live API calls. Uses your configured credits.
-              </p>
-              <details className="failure-option">
-                <summary>Try a failure</summary>
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={simulateFailure}
-                    disabled={busy}
-                    onChange={(e) => setSimulateFailure(e.target.checked)}
-                  />
-                  Fail the answer task on purpose
-                </label>
-                <p>
-                  Render will retry it twice. No OpenRouter generation call is
-                  made in this mode. Turn it off to start a fresh run.
-                </p>
-              </details>
-            </form>
-            <details className="why-card" id="how">
-              <summary>How it works</summary>
+            ))}
+          </div>
+        )}
+        {simulateFailure && (
+          <p className="test-mode">
+            Failure demo is on.{" "}
+            <button onClick={() => setSimulateFailure(false)} disabled={busy}>
+              Turn off
+            </button>
+          </p>
+        )}
+        <Workflow run={run} busy={busy} mode={health?.mode || "local"} />
+        {error && (
+          <div className="error-banner" role="alert">
+            <strong>Couldn’t connect</strong>
+            <p>{error}</p>
+            {runId && (
+              <button
+                className="secondary"
+                onClick={() => {
+                  setBusy(true);
+                  setPollVersion((v) => v + 1);
+                }}
+              >
+                Reconnect
+              </button>
+            )}
+          </div>
+        )}
+        {run?.error && (
+          <div className="error-banner" role="alert">
+            <strong>
+              {run.input.simulateFailure
+                ? "Failure demo finished"
+                : "This run failed"}
+            </strong>
+            <p>{run.error}</p>
+            <button
+              className="secondary"
+              onClick={() => {
+                setSimulateFailure(false);
+                document.getElementById("prompt")?.focus();
+              }}
+            >
+              <RotateCcw size={14} />
+              Try again
+            </button>
+          </div>
+        )}
+        {decision && (
+          <section className="result" aria-label="Selected model and answer">
+            <div className="result-heading">
               <div>
-                <span className="explain-icon">
-                  <GitBranch size={17} />
-                </span>
-                <p>
-                  <strong>TypeSafe picks the model.</strong> It returns a
-                  choice, probabilities, and confidence.
-                </p>
+                <span className="muted">TypeSafe picked</span>
+                <h2>{decision.model.name}</h2>
               </div>
-              <div>
-                <span className="explain-icon">
-                  <Zap size={17} />
-                </span>
-                <p>
-                  <strong>Render runs the workflow.</strong> It starts parallel
-                  tasks, joins results, and retries failures.
-                </p>
-              </div>
-              <p className="fineprint">
-                Your prompt is sent to TypeSafe, then to the chosen model
-                through OpenRouter. The catalog is fetched for every run. Groups
-                of 200 stay below TypeSafe's 255-choice limit. Grouping can
-                affect the winner.
-              </p>
+              <button
+                className="text-button"
+                onClick={() => setPanel("decision")}
+              >
+                Selection details <ArrowUpRight size={14} />
+              </button>
+            </div>
+            {answer ? (
+              <>
+                <div className="markdown">
+                  <ReactMarkdown>{answer.text}</ReactMarkdown>
+                </div>
+                <div className="answer-receipt">
+                  <span>
+                    {(answer.durationMs / 1000).toFixed(1)}s
+                    {answer.usage?.total_tokens != null &&
+                      ` · ${answer.usage.total_tokens.toLocaleString()} tokens`}
+                    {answer.usage?.cost != null &&
+                      ` · $${answer.usage.cost.toFixed(6)}`}
+                  </span>
+                  <button
+                    className="text-button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(answer.text);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 1500);
+                      } catch {
+                        setError("Select the answer text to copy it.");
+                      }
+                    }}
+                  >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+                {answer.finishReason === "length" && (
+                  <p className="warning-text">
+                    The answer reached the output limit and may be incomplete.
+                  </p>
+                )}
+              </>
+            ) : (
+              busy && (
+                <div className="answer-pending">
+                  <LoaderCircle size={16} className="spin" />
+                  <span>Writing the answer…</span>
+                </div>
+              )
+            )}
+          </section>
+        )}
+        <footer>
+          <button onClick={() => setPanel("about")}>About this demo</button>
+          <SignupLink />
+        </footer>
+      </main>
+      {panel === "models" && (
+        <Panel title="Live models" close={() => setPanel(null)}>
+          <Catalog
+            promptBytes={new TextEncoder().encode(prompt).length}
+            catalog={catalog}
+            decision={decision}
+            loading={catalogLoading}
+            refresh={refreshCatalog}
+            error={catalogError}
+          />
+        </Panel>
+      )}
+      {panel === "decision" && decision && (
+        <Panel title="Model selection" close={() => setPanel(null)}>
+          <Decision decision={decision} busy={busy} />
+        </Panel>
+      )}
+      {panel === "code" && (
+        <Panel title="Workflow code" close={() => setPanel(null)}>
+          <div className="section-heading">
+            <div className="segmented">
+              {(["typescript", "python"] as const).map((value) => (
+                <button
+                  key={value}
+                  className={codeLanguage === value ? "chosen" : ""}
+                  onClick={() => setCodeLanguage(value)}
+                  aria-pressed={codeLanguage === value}
+                >
+                  {value === "python" ? "Python" : "TypeScript"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="code-window">
+            <div>
+              {codeLanguage === "typescript"
+                ? "typescript/src/workflow.ts"
+                : "python/app/workflow.py"}
+            </div>
+            <pre>
+              <code>{codeLanguage === "typescript" ? tsCode : pyCode}</code>
+            </pre>
+          </div>
+        </Panel>
+      )}
+      {panel === "about" && (
+        <Panel title="How it works" close={() => setPanel(null)}>
+          <div className="about-panel">
+            <h2>One prompt, three services.</h2>
+            <dl>
+              <dt>TypeSafe AI</dt>
+              <dd>
+                Picks a model using its description, capabilities, and price.
+              </dd>
+              <dt>{config.provider.name}</dt>
+              <dd>Provides the live catalog and calls the selected model.</dd>
+              <dt>Render Workflows</dt>
+              <dd>
+                Runs each task, compares groups in parallel, and retries
+                failures.
+              </dd>
+            </dl>
+            <p>
+              Every run fetches the full catalog. Text-compatible models enter
+              groups of up to 200, below TypeSafe’s 255-choice limit. Group
+              winners enter a final selection.
+            </p>
+            <p>
+              Grouping can affect the winner. Selection probabilities are not a
+              measure of answer quality. Costs shown beside the answer cover
+              generation only.
+            </p>
+            <p>
+              Your prompt goes to TypeSafe, then to the chosen model through{" "}
+              {config.provider.name}.
+            </p>
+            <div className="about-links">
               <a
                 href="https://docs.typesafe.ai/primitives/choice"
                 target="_blank"
@@ -355,206 +449,25 @@ export default function App() {
               >
                 Render docs <ArrowUpRight size={13} />
               </a>
-            </details>
-          </aside>
-          <div className="results-column">
-            <Workflow run={run} busy={busy} mode={health?.mode || "local"} />
-            <div className="selection-explainer">
-              <GitBranch size={14} />
-              <span>
-                {catalog ? eligible : "…"} eligible models{" "}
-                <span className="route-arrow">→</span> {catalog ? groups : "…"}{" "}
-                groups <span className="route-arrow">→</span> 1 selection
-              </span>
-              <button
-                className="text-button"
-                onClick={() => setPanel("models")}
-              >
-                View models <ArrowUpRight size={12} />
-              </button>
             </div>
-            <div aria-live="polite">
-              {error && (
-                <div className="error-banner" role="alert">
-                  <strong>Connection interrupted</strong>
-                  <p>{error}</p>
-                  {runId && (
-                    <button
-                      className="secondary"
-                      onClick={() => {
-                        setBusy(true);
-                        setPollVersion((v) => v + 1);
-                      }}
-                    >
-                      Reconnect to this run
-                    </button>
-                  )}
-                </div>
-              )}
-              {run?.error && (
-                <div className="error-banner" role="alert">
-                  <strong>
-                    {run.input.simulateFailure
-                      ? "Failure demo completed"
-                      : "Workflow failed"}
-                  </strong>
-                  <p>{run.error}</p>
-                  <button
-                    className="secondary"
-                    onClick={() => {
-                      setSimulateFailure(false);
-                      document.getElementById("prompt")?.focus();
-                    }}
-                  >
-                    <RotateCcw size={14} />
-                    Prepare a fresh run
-                  </button>
-                </div>
-              )}
+            <div className="failure-option">
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={simulateFailure}
+                  disabled={busy}
+                  onChange={(e) => setSimulateFailure(e.target.checked)}
+                />
+                Try a failed task
+              </label>
+              <p>
+                The answer task fails on purpose. Watch Render retry it twice.
+                No answer-generation call is made.
+              </p>
             </div>
-            <Decision decision={decision} busy={busy} />
-            <section className="answer-card" aria-labelledby="answer-title">
-              <div className="card-label">
-                <span>
-                  <Zap size={16} />
-                  OPENROUTER · THE ANSWER
-                </span>
-                {answer && (
-                  <button
-                    className="text-button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(answer.text);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 1500);
-                      } catch {
-                        setError(
-                          "Copy unavailable. Select the answer text to copy it.",
-                        );
-                      }
-                    }}
-                  >
-                    {copied ? <Check size={14} /> : <Copy size={14} />}{" "}
-                    {copied ? "Copied" : "Copy"}
-                  </button>
-                )}
-              </div>
-              {answer ? (
-                <>
-                  <div className="answer-meta">
-                    <h2 id="answer-title">Your answer</h2>
-                    <span>{(answer.durationMs / 1000).toFixed(1)}s</span>
-                  </div>
-                  <div className="markdown">
-                    <ReactMarkdown>{answer.text}</ReactMarkdown>
-                  </div>
-                  <div className="answer-receipt">
-                    <span>
-                      Answered by <code>{answer.model}</code>
-                    </span>
-                    <span>
-                      {answer.usage?.total_tokens ?? "Unreported"} tokens
-                    </span>
-                    {answer.usage?.cost != null && (
-                      <span>
-                        ${answer.usage.cost.toFixed(6)} generation cost
-                      </span>
-                    )}
-                  </div>
-                  {answer.finishReason === "length" && (
-                    <p className="warning-text">
-                      The model reached the output limit. This answer may be
-                      incomplete.
-                    </p>
-                  )}
-                </>
-              ) : (
-                <div className="answer-empty">
-                  <span className="answer-empty-icon">
-                    <Braces size={23} />
-                  </span>
-                  <div>
-                    <h2 id="answer-title">
-                      {decision && busy
-                        ? "Writing your answer…"
-                        : "Your answer"}
-                    </h2>
-                    <p>
-                      {decision
-                        ? "OpenRouter is calling the selected model."
-                        : "Run a prompt to see the result."}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </section>
           </div>
-        </div>
-        {panel === "models" && (
-          <Panel title="Models" close={() => setPanel(null)}>
-            <Catalog
-              promptBytes={new TextEncoder().encode(prompt).length}
-              catalog={catalog}
-              decision={decision}
-              loading={catalogLoading}
-              refresh={refreshCatalog}
-              error={catalogError}
-            />
-          </Panel>
-        )}
-        {panel === "code" && (
-          <Panel title="Workflow code" close={() => setPanel(null)}>
-            <section className="code-section" id="code">
-              <div className="section-heading">
-                <div>
-                  <span className="eyebrow">TYPESCRIPT & PYTHON</span>
-                  <h2>Workflow code</h2>
-                </div>
-                <div className="segmented compact">
-                  <button
-                    className={codeLanguage === "typescript" ? "chosen" : ""}
-                    onClick={() => setCodeLanguage("typescript")}
-                    aria-pressed={codeLanguage === "typescript"}
-                  >
-                    TypeScript
-                  </button>
-                  <button
-                    className={codeLanguage === "python" ? "chosen" : ""}
-                    onClick={() => setCodeLanguage("python")}
-                    aria-pressed={codeLanguage === "python"}
-                  >
-                    Python
-                  </button>
-                </div>
-              </div>
-              <div className="code-window">
-                <div>
-                  <span className="code-dots">● ● ●</span>
-                  <span>
-                    {codeLanguage === "typescript"
-                      ? "typescript/src/workflow.ts"
-                      : "python/app/workflow.py"}
-                  </span>
-                  <span>actual source</span>
-                </div>
-                <pre>
-                  <code>{codeLanguage === "typescript" ? tsCode : pyCode}</code>
-                </pre>
-              </div>
-            </section>
-          </Panel>
-        )}
-        <footer>
-          <span>
-            <GitBranch size={16} /> Route Lab
-          </span>
-          <p>
-            Selection uses model descriptions and prices. Answer quality is not
-            benchmarked.
-          </p>
-          <SignupLink />
-        </footer>
-      </main>
+        </Panel>
+      )}
     </>
   );
 }

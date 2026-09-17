@@ -1,7 +1,7 @@
 import asyncio
 from render import Retry, TaskContext, Workflows
-from app.catalog import fetch_catalog
-from app.providers import model_groups, shortlist, decide, generate
+from app import provider
+from app.routing import model_groups, shortlist, decide
 
 app = Workflows(
     default_plan="flex",
@@ -12,7 +12,7 @@ app = Workflows(
 
 @app.task(timeout_seconds=30)
 async def load_models(ctx: TaskContext) -> dict:
-    return await fetch_catalog()
+    return await provider.fetch_catalog()
 
 
 @app.task(timeout_seconds=90)
@@ -33,7 +33,9 @@ async def choose_model(
 async def write_answer(
     ctx: TaskContext, prompt: str, decision: dict, simulate_failure: bool
 ) -> dict:
-    return await generate(prompt, decision, simulate_failure)
+    if simulate_failure:
+        raise ValueError("Demo failure: the answer task failed before calling the provider.")
+    return await provider.generate(prompt, decision["model"])
 
 
 # Only child tasks retry. A new parent run can repeat previously completed work.

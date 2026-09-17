@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowUpRight, Code, Rocket } from "lucide-react";
+import { ArrowUpRight, Code } from "lucide-react";
 import { githubRepository, renderLink } from "../../shared/links";
 import type { Language } from "./api";
 import Panel from "./Panel";
@@ -29,7 +29,7 @@ export function ProjectLinks({ language }: { language: Language }) {
           </span>
         )}
         <button className="deploy-button" onClick={() => setOpen(true)}>
-          <Rocket size={15} />
+          <img src="/render-mark-white.svg" alt="" width="14" height="14" />
           Deploy to Render
         </button>
       </div>

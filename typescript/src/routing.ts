@@ -1,12 +1,6 @@
 import { choice, TypeSafeClient } from "@typesafe-ai/sdk";
 import config from "../../shared/config.json";
-import type {
-  Answer,
-  Catalog,
-  Decision,
-  Model,
-  Shortlist,
-} from "../../shared/types";
+import type { Catalog, Decision, Model, Shortlist } from "../../shared/types";
 
 export function modelGroups(catalog: Catalog, prompt: string): Model[][] {
   const models = catalog.models
@@ -93,59 +87,5 @@ export async function decide(
     catalogFetchedAt,
     usage: result.usage,
     rounds,
-  };
-}
-
-export async function generate(
-  prompt: string,
-  decision: Decision,
-  simulateFailure: boolean,
-): Promise<Answer> {
-  if (simulateFailure)
-    throw new Error(
-      "Demo failure: generation stopped before calling OpenRouter.",
-    );
-  const started = performance.now();
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      signal: AbortSignal.timeout(90_000),
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: decision.model.id,
-        messages: [
-          {
-            role: "system",
-            content:
-              "Give a useful, concise answer. Use Markdown when helpful. Keep the answer under 250 words.",
-          },
-          { role: "user", content: prompt },
-        ],
-        max_tokens: 1600,
-        ...(decision.model.reasoning ? { reasoning: { effort: "low" } } : {}),
-      }),
-    },
-  );
-  if (!response.ok)
-    throw new Error(
-      `OpenRouter request failed (HTTP ${response.status}). Check the API key, credits, and model access.`,
-    );
-  const data = await response.json();
-  const message = data.choices?.[0];
-  if (!message?.message?.content)
-    throw new Error(
-      "OpenRouter returned no answer text. Try again or use a shorter prompt.",
-    );
-  return {
-    stage: "answer",
-    text: message.message.content,
-    model: data.model,
-    durationMs: Math.round(performance.now() - started),
-    usage: data.usage ?? null,
-    finishReason: message.finish_reason ?? null,
   };
 }

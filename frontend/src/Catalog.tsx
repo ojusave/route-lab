@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Search,
 } from "lucide-react";
+import config from "../../shared/config.json";
 import type { Catalog as ModelCatalog, Decision } from "../../shared/types";
 export const price = (value: number | null) =>
   value === null
@@ -48,7 +49,9 @@ export default function Catalog({
     >
       <div className="section-heading">
         <div>
-          <span className="eyebrow">DIRECT FROM OPENROUTER</span>
+          <span className="eyebrow">
+            DIRECT FROM {config.provider.name.toUpperCase()}
+          </span>
           <h2 id="catalog-title">Live model catalog</h2>
         </div>
         <button className="secondary" onClick={refresh} disabled={loading}>
@@ -152,7 +155,7 @@ export default function Catalog({
         <span>
           {catalog
             ? `Fetched ${new Date(catalog.fetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}. Listed base prices, not a quote.`
-            : "Waiting for OpenRouter."}
+            : `Waiting for ${config.provider.name}.`}
         </span>
         <div className="pagination">
           <button
@@ -180,8 +183,8 @@ export default function Catalog({
         Each run fetches a new snapshot. Text compatibility and a conservative
         context check determine eligibility; account restrictions and provider
         availability can still prevent generation.{" "}
-        <a href="https://openrouter.ai/models" target="_blank" rel="noreferrer">
-          OpenRouter models <ArrowUpRight size={12} />
+        <a href={config.provider.modelsUrl} target="_blank" rel="noreferrer">
+          {config.provider.name} models <ArrowUpRight size={12} />
         </a>
       </p>
     </section>

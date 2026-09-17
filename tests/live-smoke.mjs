@@ -1,11 +1,11 @@
 import { writeFileSync } from "node:fs";
 const evidence = [];
-for (const [language, port] of [
-  ["typescript", 3001],
-  ["python", 3002],
+for (const [language, base] of [
+  ["typescript", process.env.TS_URL || "http://127.0.0.1:3001"],
+  ["python", process.env.PY_URL || "http://127.0.0.1:3002"],
 ]) {
   const start = Date.now();
-  const response = await fetch(`http://127.0.0.1:${port}/api/runs`, {
+  const response = await fetch(`${base}/api/runs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -18,8 +18,8 @@ for (const [language, port] of [
   console.log(language, "started", id);
   let finished = false;
   let previous = "";
-  while (Date.now() - start < 240_000) {
-    const r = await fetch(`http://127.0.0.1:${port}/api/runs/${id}`);
+  while (Date.now() - start < 720_000) {
+    const r = await fetch(`${base}/api/runs/${id}`);
     const run = await r.json();
     if (!r.ok) throw new Error(JSON.stringify(run));
     const status = run.steps
@@ -49,8 +49,11 @@ for (const [language, port] of [
       evidence.push(record);
       console.log(JSON.stringify(record));
       if (!run.answer) throw new Error(`${language} failed`);
-      if (run.steps.length !== 6)
-        throw new Error(`Expected 6 child runs, got ${run.steps.length}`);
+      const expected = Math.ceil(run.decision.candidateCount / 200) + 3;
+      if (run.steps.length !== expected)
+        throw new Error(
+          `Expected ${expected} child runs, got ${run.steps.length}`,
+        );
       finished = true;
       break;
     }
@@ -58,4 +61,7 @@ for (const [language, port] of [
   }
   if (!finished) throw new Error(`${language} timed out`);
 }
-writeFileSync("tests/live-evidence.json", JSON.stringify(evidence, null, 2));
+writeFileSync(
+  process.env.EVIDENCE_PATH || "tests/live-evidence.json",
+  JSON.stringify(evidence, null, 2),
+);

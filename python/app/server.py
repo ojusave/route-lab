@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from app.catalog import fetch_catalog
+from app import provider
 from app.runs import render, read_run, WORKFLOW
 
 app = FastAPI()
@@ -33,13 +33,13 @@ async def health():
 
 @app.get("/api/models")
 async def models():
-    return JSONResponse(await fetch_catalog(), headers={"Cache-Control": "no-store"})
+    return JSONResponse(await provider.fetch_catalog(), headers={"Cache-Control": "no-store"})
 
 
 @app.post("/api/runs", status_code=202)
 async def start(body: Input):
     configured = (
-        (os.getenv("TYPESAFE_API_KEY") and os.getenv("OPENROUTER_API_KEY"))
+        os.getenv("TYPESAFE_API_KEY")
         if os.getenv("RENDER_LOCAL_DEV_URL")
         else (os.getenv("RENDER_API_KEY") and os.getenv("RENDER_WORKFLOW_SLUG"))
     )

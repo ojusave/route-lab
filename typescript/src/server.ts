@@ -1,5 +1,5 @@
 import express from "express";
-import { fetchCatalog } from "./catalog";
+import { provider } from "./provider";
 import { z } from "zod";
 import { render, readRun, workflow } from "./runs";
 import { fileURLToPath } from "node:url";
@@ -16,7 +16,7 @@ app.get("/api/health", (_req, res) =>
 );
 app.get("/api/models", async (_req, res) => {
   res.set("Cache-Control", "no-store");
-  res.json(await fetchCatalog());
+  res.json(await provider.fetchCatalog());
 });
 const input = z
   .object({
@@ -33,7 +33,7 @@ app.post("/api/runs", async (req, res) => {
     return;
   }
   const configured = process.env.RENDER_LOCAL_DEV_URL
-    ? process.env.TYPESAFE_API_KEY && process.env.OPENROUTER_API_KEY
+    ? process.env.TYPESAFE_API_KEY
     : process.env.RENDER_API_KEY && process.env.RENDER_WORKFLOW_SLUG;
   if (!configured) {
     res.status(503).json({

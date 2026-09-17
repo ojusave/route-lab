@@ -1,9 +1,9 @@
 [
   {
     "language": "typescript",
-    "id": "trn-dam6pen9pgcrj44o0680",
+    "id": "trn-dam76ov9pgct7gdcrip0",
     "status": "completed",
-    "elapsedMs": 6552,
+    "elapsedMs": 10786,
     "model": "amazon/nova-micro-v1",
     "candidates": 439,
     "steps": [
@@ -20,13 +20,13 @@
       },
       {
         "name": "shortlist_models",
-        "group": 1,
+        "group": 2,
         "status": "completed",
         "attempts": 1
       },
       {
         "name": "shortlist_models",
-        "group": 2,
+        "group": 1,
         "status": "completed",
         "attempts": 1
       },
@@ -41,14 +41,14 @@
         "attempts": 1
       }
     ],
-    "answer": "Rainbows form when sunlight refracts, reflects inside water droplets, and then refracts again, separating into the spectrum of colors. The specific angle at which this occurs makes each observer see a unique rainbow arc in the sky.",
+    "answer": "Rainbows form when sunlight refracts, reflects, and disperses through water droplets in the atmosphere, creating a spectrum of light. The most common rainbow appears as an arc with red on the outer edge and violet on the inner edge due to the bending of light at different angles.",
     "error": null
   },
   {
     "language": "python",
-    "id": "trn-dam6pg79pgcrj63l86r0",
+    "id": "trn-dam76rn9pgct7if1kv5g",
     "status": "completed",
-    "elapsedMs": 6543,
+    "elapsedMs": 14132,
     "model": "amazon/nova-micro-v1",
     "candidates": 439,
     "steps": [
@@ -66,13 +66,13 @@
       },
       {
         "name": "shortlist_models",
-        "group": 1,
+        "group": 2,
         "status": "completed",
         "attempts": 1
       },
       {
         "name": "shortlist_models",
-        "group": 2,
+        "group": 1,
         "status": "completed",
         "attempts": 1
       },
@@ -89,7 +89,7 @@
         "attempts": 1
       }
     ],
-    "answer": "Rainbows form when sunlight refracts, reflects inside water droplets, and then refracts again, separating into the spectrum of colors we see. The most common rainbow appears when sunlight exits the droplets at a 42-degree angle relative to the incoming light.",
+    "answer": "Rainbows form when sunlight refracts, reflects, and disperses through water droplets in the atmosphere, creating a spectrum of light that appears as an arc in the sky. The specific angle at which light separates into its component colors results in the characteristic seven-color display.",
     "error": null
   }
 ]

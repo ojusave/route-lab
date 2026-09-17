@@ -1,4 +1,4 @@
-import type { Catalog, Model } from "../../shared/types";
+import type { Answer, Catalog, Model } from "../../../shared/types";
 
 export function normalizeModel(raw: any): Model {
   const input = raw.architecture?.input_modalities ?? [];
@@ -49,5 +49,51 @@ export async function fetchCatalog(): Promise<Catalog> {
     models: data.data.map(normalizeModel),
     fetchedAt: new Date().toISOString(),
     durationMs: Math.round(performance.now() - started),
+  };
+}
+
+export async function generate(prompt: string, model: Model): Promise<Answer> {
+  const started = performance.now();
+  const response = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      signal: AbortSignal.timeout(90_000),
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: model.id,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Give a useful, concise answer. Use Markdown when helpful. Keep the answer under 250 words.",
+          },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 1600,
+        ...(model.reasoning ? { reasoning: { effort: "low" } } : {}),
+      }),
+    },
+  );
+  if (!response.ok)
+    throw new Error(
+      `OpenRouter request failed (HTTP ${response.status}). Check the API key, credits, and model access.`,
+    );
+  const data = await response.json();
+  const message = data.choices?.[0];
+  if (!message?.message?.content)
+    throw new Error(
+      "OpenRouter returned no answer text. Try again or use a shorter prompt.",
+    );
+  return {
+    stage: "answer",
+    text: message.message.content,
+    model: data.model,
+    durationMs: Math.round(performance.now() - started),
+    usage: data.usage ?? null,
+    finishReason: message.finish_reason ?? null,
   };
 }

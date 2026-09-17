@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timezone
 from time import perf_counter
 import math
@@ -54,4 +55,46 @@ async def fetch_catalog() -> dict:
         models=[normalize_model(m) for m in models],
         fetchedAt=datetime.now(timezone.utc).isoformat(),
         durationMs=round((perf_counter() - started) * 1000),
+    )
+
+
+async def generate(prompt: str, model: dict) -> dict:
+    started = perf_counter()
+    payload = dict(
+        model=model["id"],
+        messages=[
+            dict(
+                role="system",
+                content="Give a useful, concise answer. Use Markdown when helpful. Keep the answer under 250 words.",
+            ),
+            dict(role="user", content=prompt),
+        ],
+        max_tokens=1600,
+    )
+    if model["reasoning"]:
+        payload["reasoning"] = {"effort": "low"}
+    async with httpx.AsyncClient(timeout=90) as client:
+        response = await client.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            json=payload,
+            headers={"Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}"},
+        )
+    if response.status_code != 200:
+        raise ValueError(
+            f"OpenRouter request failed (HTTP {response.status_code}). Check the API key, credits, and model access."
+        )
+    data = response.json()
+    message = data.get("choices", [{}])[0]
+    text = message.get("message", {}).get("content")
+    if not text:
+        raise ValueError(
+            "OpenRouter returned no answer text. Try again or use a shorter prompt."
+        )
+    return dict(
+        stage="answer",
+        text=text,
+        model=data["model"],
+        durationMs=round((perf_counter() - started) * 1000),
+        usage=data.get("usage"),
+        finishReason=message.get("finish_reason"),
     )

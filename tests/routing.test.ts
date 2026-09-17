@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { modelGroups } from '../typescript/src/providers';
-import { normalizeModel } from '../typescript/src/catalog';
+import { modelGroups } from '../typescript/src/routing';
+import { normalizeModel } from '../typescript/src/adapters/openrouter';
 import type { Catalog } from '../shared/types';
 
 const model=(id:string,context=32000)=>normalizeModel({id,name:id,description:'Text model',context_length:context,architecture:{input_modalities:['text'],output_modalities:['text']},pricing:{prompt:'0.000001',completion:'0.000002'}});

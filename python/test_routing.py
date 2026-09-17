@@ -1,6 +1,6 @@
 import unittest
-from app.catalog import normalize_model
-from app.providers import model_groups
+from app.adapters.openrouter import normalize_model
+from app.routing import model_groups
 
 
 def model(i, context=32000):

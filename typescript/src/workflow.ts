@@ -1,12 +1,12 @@
 import { task } from "@renderinc/sdk/workflows";
-import { modelGroups, shortlist, decide, generate } from "./providers";
-import { fetchCatalog } from "./catalog";
+import { modelGroups, shortlist, decide } from "./routing";
+import { provider } from "./provider";
 import type { Decision, Model, Shortlist } from "../../shared/types";
 
 const retry = { maxRetries: 2, waitDurationMs: 1000, backoffScaling: 2 };
 const loadModels = task(
   { name: "load_models", plan: "flex", retry, timeoutSeconds: 30 },
-  async () => fetchCatalog(),
+  async () => provider.fetchCatalog(),
 );
 const shortlistModels = task(
   { name: "shortlist_models", plan: "flex", retry, timeoutSeconds: 90 },
@@ -20,8 +20,18 @@ const chooseModel = task(
 );
 const writeAnswer = task(
   { name: "write_answer", plan: "flex", retry, timeoutSeconds: 120 },
-  async (_ctx, prompt: string, decision: Decision, simulateFailure: boolean) =>
-    generate(prompt, decision, simulateFailure),
+  async (
+    _ctx,
+    prompt: string,
+    decision: Decision,
+    simulateFailure: boolean,
+  ) => {
+    if (simulateFailure)
+      throw new Error(
+        "Demo failure: the answer task failed before calling the provider.",
+      );
+    return provider.generate(prompt, decision.model);
+  },
 );
 
 // No parent retry: restarting a parent can repeat previously completed subtasks.
