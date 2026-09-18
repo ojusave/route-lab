@@ -302,59 +302,6 @@ h1 {
   margin-top: 28px;
   outline: none;
 }
-.pipeline {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.pipeline li {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 9px;
-  text-align: center;
-  min-width: 0;
-}
-.pipeline li:not(:last-child)::after {
-  content: "";
-  height: 1px;
-  position: absolute;
-  top: 13px;
-  left: calc(50% + 21px);
-  right: calc(-50% + 21px);
-  background: var(--line);
-}
-.stage-node {
-  width: 27px;
-  height: 27px;
-  border-radius: 50%;
-  border: 1px solid #ddd;
-  background: #fafafa;
-  color: #888;
-  font: 11px var(--mono);
-  display: grid;
-  place-items: center;
-}
-.pipeline strong {
-  display: block;
-  font-weight: 500;
-  font-size: 12px;
-  color: #686868;
-}
-.pipeline li > div > span {
-  display: block;
-  font-size: 10px;
-  color: #909090;
-  margin-top: 1px;
-}
-.pipeline .stage-node span {
-  margin: 0;
-  color: inherit;
-  font-size: 10px;
-}
 .live-headline {
   display: flex;
   align-items: center;
@@ -1085,9 +1032,6 @@ td strong {
   .trace-grid strong {
     font-size: 10px;
   }
-  .welcome .workflow-card {
-    margin-top: 32px;
-  }
 }
 @media (max-width: 440px) {
   .topbar {
@@ -1122,12 +1066,6 @@ td strong {
   }
   .composer {
     padding: 14px;
-  }
-  .pipeline strong {
-    font-size: 11px;
-  }
-  .pipeline li > div > span {
-    font-size: 9px;
   }
   .result-heading {
     flex-wrap: wrap;

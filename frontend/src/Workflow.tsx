@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Check, LoaderCircle, X } from "lucide-react";
 import type { Run } from "../../shared/types";
 import { terminal } from "./api";
-import config from "../../shared/config.json";
 import TaskTimeline from "./TaskTimeline";
 import { durationLabel, timeline } from "./timeline";
 const taskLabels: Record<string, string> = {
@@ -27,16 +26,12 @@ export default function Workflow({
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [busy]);
+  if (!run && !busy) return null;
+
   const steps = run?.steps ?? [];
   const grouped = steps
     .filter((s) => s.taskName === "shortlist_models")
     .sort((a, b) => (a.group ?? 0) - (b.group ?? 0));
-  const stages = [
-    { title: "Fetch models", sub: config.provider.name, name: "load_models" },
-    { title: "Compare", sub: "TypeSafe", name: "shortlist_models" },
-    { title: "Pick model", sub: "TypeSafe", name: "choose_model" },
-    { title: "Answer", sub: config.provider.name, name: "write_answer" },
-  ];
   const current = steps.filter((s) => !terminal(s.status));
   const retrying = current.find((s) => s.attempts.length > 1);
   const failed = run?.status === "failed";
@@ -95,23 +90,7 @@ export default function Workflow({
           <time>{elapsed !== null ? durationLabel(elapsed) : ""}</time>
         </div>
       )}
-      {run ? (
-        <TaskTimeline run={run} now={now} />
-      ) : (
-        <ol className="pipeline">
-          {stages.map((stage, i) => (
-            <li key={stage.name}>
-              <div className="stage-node">
-                <span>{String(i + 1).padStart(2, "0")}</span>
-              </div>
-              <div>
-                <strong>{stage.title}</strong>
-                <span>{stage.sub}</span>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
+      {run && <TaskTimeline run={run} now={now} />}
       {run && (
         <details className="trace">
           <summary>
