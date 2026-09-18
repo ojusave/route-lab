@@ -36,7 +36,7 @@ The comparison view shows actual `Choice` probabilities as each Render task fini
 
 The root Blueprint deploys TypeScript. `python/render.yaml` deploys Python. Deploy links preserve `path=render.yaml` or `path=python/render.yaml` in Render's sign-in `next` URL; the generic signed-out deploy redirect drops that path. Signed-in visitors continue to the selected Blueprint. The footer links to Render Workflows with the existing UTM attribution. Each web service serves a separate frontend build and calls its own Workflow. The two examples share frontend source and the routing policy, but have no runtime dependency on each other.
 
-Provider keys stay on the Workflow. The web service needs a Render API key and a Workflow slug. The Blueprint supplies the slug through `fromService`. Auto-deploy is off.
+Provider keys stay on the Workflow. Both Blueprints prompt for `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` with `sync: false`. The shared `scripts/check-provider-keys.sh` runs before either Workflow build and rejects missing, empty, or whitespace-only values without printing secrets. This checks presence, not whether a provider accepts the credential. The web service needs a Render API key and a Workflow slug. The Blueprint supplies the slug through `fromService`. Auto-deploy is off.
 
 Run IDs act as shareable links to prompts and results. Each app rejects runs belonging to another Workflow. This demo has no user authentication or shared spending quota. Use provider spending limits or add access controls for unrestricted public traffic. External provider calls are not exactly once: a retry after an ambiguous timeout can incur another charge.
 

@@ -33,12 +33,12 @@ services:
     repo: https://github.com/ojusave/route-lab
     region: oregon
     autoDeployTrigger: off
-    buildCommand: npm ci --include=dev
+    buildCommand: sh scripts/check-provider-keys.sh && npm ci --include=dev
     startCommand: npm run start:workflow
     envVars:
       - key: NODE_VERSION
         value: "24"
-      # Render prompts for both provider API keys when creating this Workflow.
+      # Prompt during Blueprint creation; the build rejects missing or blank keys.
       - key: TYPESAFE_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY

@@ -21,7 +21,7 @@ The [Blueprint](render.yaml) creates a paid web service and a separate Workflow.
 | `OPENROUTER_API_KEY` | Workflow | Generate the answer |
 | `RENDER_API_KEY` | Web service | Start runs and read task progress |
 
-Both provider keys use `sync: false`; enter their values during deployment. The Workflow slug is wired automatically.
+Both provider keys are required. Render asks for them during Blueprint setup, and the Workflow build stops if either is missing or blank. The Workflow slug is wired automatically.
 
 ## Try it
 
