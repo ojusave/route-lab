@@ -25,11 +25,14 @@ async def read_run(run_id: str) -> dict:
             metadata.raise_for_status()
             TASKS[root["taskId"]] = metadata.json()
         task = TASKS[root["taskId"]]
-        if task["name"] != "answer_prompt" or root.get("parentTaskRunId"):
+        if task["name"] != "play_round" or root.get("parentTaskRunId"):
             raise LookupError("Run not found.")
         if not os.getenv("RENDER_LOCAL_DEV_URL"):
             if not WORKFLOW_ID:
-                matching = await client.get(f"{base}/v1/tasks", params={"taskSlug": f"{WORKFLOW}/answer_prompt", "limit": 1})
+                matching = await client.get(
+                    f"{base}/v1/tasks",
+                    params={"taskSlug": f"{WORKFLOW}/play_round", "limit": 1},
+                )
                 matching.raise_for_status()
                 entries = matching.json()
                 WORKFLOW_ID = entries[0]["task"].get("workflowId") if entries else None
@@ -66,8 +69,7 @@ async def read_run(run_id: str) -> dict:
                 taskName=name,
                 status=r["status"],
                 retries=r["retries"],
-                group=r["input"][2] if name == "shortlist_models" else None,
-                candidates=len(r["input"][1]) if name == "shortlist_models" else None,
+                characterId=r["input"][1] if name == "evaluate_character" else None,
                 attempts=[
                     dict(attempt=a["attempt"], status=a["status"])
                     for a in r.get("attempts", [])
@@ -77,34 +79,27 @@ async def read_run(run_id: str) -> dict:
                 result=(r.get("results") or [None])[0],
             )
         )
-    final = (root.get("results") or [{}])[0] or {}
 
-    def stage(name):
-        return next(
-            (
-                s["result"]
-                for s in steps
-                if s["result"] and s["result"].get("stage") == name
-            ),
-            None,
-        )
-
-    args = root["input"]
-    error = None
-    if root["status"] == "failed":
-        error = (
-            "Intentional demo failure. Render retried the answer task. Turn off failure mode and run again."
-            if args[1]
-            else "A provider task failed after its configured attempts. Check the server credentials, provider access, or retry the request."
-        )
+    final = (root.get("results") or [None])[0]
+    data = root["input"][0]
+    results = (
+        final["results"]
+        if final
+        else data["carried"] + [s["result"] for s in steps if s["result"]]
+    )
+    error = (
+        "Some characters could not finish. Retry the missing votes; your attempt is saved."
+        if (final and final.get("failed")) or root["status"] in ("failed", "canceled")
+        else None
+    )
     return dict(
         id=run_id,
         startedAt=root.get("startedAt"),
         completedAt=root.get("completedAt"),
         status=root["status"],
         steps=steps,
-        decision=final.get("decision") or stage("route"),
-        answer=final.get("answer") or stage("answer"),
+        input=data,
+        results=results,
+        outcome=final,
         error=error,
-        input=dict(prompt=args[0], simulateFailure=args[1]),
     )

@@ -1,39 +1,39 @@
-# Render Workflows + TypeSafe AI: TypeScript
+# Win the room · TypeScript
 
-**[Open the live demo](https://route-lab-typescript-web.onrender.com)**
+A Render Workflows demo: pitch an invention, hear three fictional judges, and try to change their votes. Two attempts. Two votes to win.
 
-Render runs model comparisons in parallel. TypeSafe picks a model, and OpenRouter generates the answer.
+<a href="https://render.com/docs/workflows?utm_source=github&utm_medium=referral&utm_campaign=ojus_demos&utm_content=readme_badge" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Render-Workflows-6e40c9?logo=render&logoColor=white" alt="Render Workflows" /></a>
+<a href="https://docs.typesafe.ai" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/TypeSafe_AI-Decisions-18181b" alt="TypeSafe AI" /></a>
+<a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/OpenRouter-Dialogue-555555?logo=openrouter&logoColor=white" alt="OpenRouter" /></a>
+<a href="https://github.com/render-oss/sdk" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/TypeScript-SDK-3178C6?logo=typescript&logoColor=white" alt="TypeScript SDK" /></a>
 
-[![Render Workflows](https://img.shields.io/badge/Render-Workflows-6e40c9?logo=render&logoColor=white)](https://render.com/docs/workflows)
-[![TypeSafe AI](https://img.shields.io/badge/TypeSafe_AI-Model_selection-18181b)](https://docs.typesafe.ai/primitives/choice)
-[![OpenRouter](https://img.shields.io/badge/OpenRouter-Models-555555?logo=openrouter&logoColor=white)](https://openrouter.ai)
-[![TypeScript](https://img.shields.io/badge/TypeScript-SDK-3178C6?logo=typescript&logoColor=white)](https://github.com/render-oss/sdk)
+<a href="https://route-lab-typescript-web.onrender.com" target="_blank" rel="noopener noreferrer">Try the demo</a>
 
 ## Deploy
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://dashboard.render.com/login?utm_source=github&utm_medium=referral&utm_campaign=ojus_demos&utm_content=readme_deploy_typescript&next=%2Fblueprint%2Fnew%3Frepo%3Dhttps%253A%252F%252Fgithub.com%252Fojusave%252Froute-lab%26utm_source%3Dgithub%26utm_medium%3Dreferral%26utm_campaign%3Dojus_demos%26utm_content%3Dreadme_deploy_typescript%26path%3Drender.yaml)
+<a href="https://dashboard.render.com/login?utm_source=github&utm_medium=referral&utm_campaign=ojus_demos&utm_content=readme_deploy_typescript&next=%2Fblueprint%2Fnew%3Frepo%3Dhttps%253A%252F%252Fgithub.com%252Fojusave%252Froute-lab%26utm_source%3Dgithub%26utm_medium%3Dreferral%26utm_campaign%3Dojus_demos%26utm_content%3Dreadme_deploy_typescript%26path%3Drender.yaml" target="_blank" rel="noopener noreferrer"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" /></a>
 
-The [Blueprint](../render.yaml) creates a paid web service and a separate Workflow. Render prompts for:
+Creates a paid web service and a usage-billed Workflow. During setup, enter:
 
-| API key | Used by | Purpose |
-| --- | --- | --- |
-| `TYPESAFE_API_KEY` | Workflow | Compare models and select a winner |
-| `OPENROUTER_API_KEY` | Workflow | Generate the answer |
-| `RENDER_API_KEY` | Web service | Start runs and read task progress |
+| Key                  | Purpose                             |
+| -------------------- | ----------------------------------- |
+| `TYPESAFE_API_KEY`   | Evaluate each judge’s criteria      |
+| `OPENROUTER_API_KEY` | Write short reactions               |
+| `RENDER_API_KEY`     | Start rounds and read task progress |
 
-Both provider keys are required. Render asks for them during Blueprint setup, and the Workflow build stops if either is missing or blank. The Workflow slug is wired automatically.
+Both provider keys are required. The Workflow slug is wired automatically.
 
 ## Try it
 
-1. Run a prompt and watch parallel tasks on the timeline.
-2. Open a TypeSafe comparison group or **Final choice** to inspect probabilities and inputs.
-3. In **Code → About this demo**, enable **Try a failed task** to see Render retry the answer task.
+1. Choose an example and make your pitch.
+2. Click a judge to inspect the actual TypeSafe decisions.
+3. Address their concerns in your second attempt. Watch the parallel Render tasks below.
 
-![Render task timeline](../docs/demo.jpg)
+![The game](../docs/demo.jpg)
 
-## Local development
+## Run locally
 
-From the repository root, with Node.js 22.12+ and Render CLI installed:
+From the repository root, with Node.js 22.12+, Render CLI installed:
 
 ```sh
 npm ci
@@ -43,6 +43,6 @@ npm run dev:typescript
 
 Open **http://127.0.0.1:5173**.
 
-Start with [`src/workflow.ts`](src/workflow.ts). TypeSafe selection lives in `src/routing.ts`. Model-provider calls live in `src/adapters/openrouter.ts`.
+Start with <a href="src/workflow.ts" target="_blank" rel="noopener noreferrer">the workflow</a>. Shared character rules live in `shared/config.json`; text-provider calls are isolated in `src/adapters/openrouter.ts`.
 
-[All examples](../README.md) · [Technical notes](../docs/development.md)
+<a href="../README.md" target="_blank" rel="noopener noreferrer">Both examples</a> · <a href="../docs/development.md" target="_blank" rel="noopener noreferrer">Technical notes</a>

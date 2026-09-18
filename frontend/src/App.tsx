@@ -1,19 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowUp,
-  ArrowUpRight,
-  Check,
-  Copy,
+  ArrowRight,
+  Code2,
   LoaderCircle,
   RotateCcw,
+  Trophy,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import type { Catalog as ModelCatalog, Run } from "../../shared/types";
 import config from "../../shared/config.json";
+import type { Run } from "../../shared/types";
 import tsCode from "../../typescript/src/workflow.ts?raw";
 import pyCode from "../../python/app/workflow.py?raw";
 import { api, terminal, example, type Language } from "./api";
-import Catalog from "./Catalog";
+import Character from "./Character";
 import Decision from "./Decision";
 import Workflow from "./Workflow";
 import Panel from "./Panel";
@@ -24,53 +22,28 @@ export default function App() {
   const [language, setLanguage] = useState<Language>(
     example || (params.get("sdk") === "python" ? "python" : "typescript"),
   );
-  const [prompt, setPrompt] = useState("");
-  const [catalog, setCatalog] = useState<ModelCatalog | null>(null);
-  const [catalogLoading, setCatalogLoading] = useState(true);
-  const [catalogError, setCatalogError] = useState("");
-  const [health, setHealth] = useState<{
-    mode: string;
-    typesafe: boolean;
-    openrouter: boolean;
-  } | null>(null);
+  const [pitch, setPitch] = useState("");
   const [run, setRun] = useState<Run | null>(null);
   const [runId, setRunId] = useState<string | null>(params.get("run"));
   const [busy, setBusy] = useState(Boolean(params.get("run")));
   const [error, setError] = useState("");
-  const [simulateFailure, setSimulateFailure] = useState(false);
-  const [codeLanguage, setCodeLanguage] = useState<Language>("typescript");
-  const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState("connecting");
+  const [panel, setPanel] = useState<string | null>(null);
+  const [codeLanguage, setCodeLanguage] = useState<Language>(language);
   const [pollVersion, setPollVersion] = useState(0);
-  const generation = useRef(0);
-  const [panel, setPanel] = useState<"models" | "code" | "about" | null>(null);
-
-  async function refreshCatalog() {
-    const gen = ++generation.current;
-    setCatalogLoading(true);
-    setCatalogError("");
-    try {
-      const data = await api<ModelCatalog>(language, "/models");
-      if (gen === generation.current) setCatalog(data);
-    } catch (e) {
-      if (gen === generation.current) setCatalogError((e as Error).message);
-    } finally {
-      if (gen === generation.current) setCatalogLoading(false);
-    }
-  }
+  const loaded = useRef<string | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     let live = true;
-    setHealth(null);
-    api<typeof health>(language, "/health")
-      .then((data) => {
-        if (live) setHealth(data);
+    api<{ mode: string }>(language, "/health")
+      .then((h) => {
+        if (live) setMode(h.mode);
       })
       .catch(() => {
-        if (live) setError("Cannot reach this example. Try reconnecting.");
+        if (live) setMode("offline");
       });
-    refreshCatalog();
     return () => {
       live = false;
-      generation.current++;
     };
   }, [language]);
   useEffect(() => {
@@ -82,19 +55,16 @@ export default function App() {
         const data = await api<Run>(language, `/runs/${runId}`);
         if (canceled) return;
         setRun(data);
-        setPrompt(data.input.prompt);
         setError("");
-        const snapshot = data.steps.find(
-          (s) =>
-            s.result && "stage" in s.result && s.result.stage === "catalog",
-        )?.result;
-        if (snapshot && "stage" in snapshot && snapshot.stage === "catalog")
-          setCatalog(snapshot);
+        if (loaded.current !== data.id) {
+          setPitch(data.input.pitch);
+          loaded.current = data.id;
+        }
         if (terminal(data.status)) {
           setBusy(false);
           return;
         }
-        timer = setTimeout(poll, 1000);
+        timer = setTimeout(poll, 1200);
       } catch (e) {
         if (!canceled) {
           setError((e as Error).message);
@@ -108,156 +78,247 @@ export default function App() {
       clearTimeout(timer);
     };
   }, [runId, language, pollVersion]);
-
-  function changeLanguage(value: Language) {
-    setLanguage(value);
+  const waiting = busy || Boolean(run && !terminal(run.status));
+  const complete = Boolean(run?.outcome?.complete);
+  const finished =
+    complete &&
+    Boolean(run?.outcome?.won || run!.input.round >= config.maxRounds);
+  const person = config.characters.find((c) => c.id === panel);
+  const result = run?.results.find((r) => r.characterId === panel);
+  const votes = run?.results.filter((r) => r.vote === "yes").length ?? 0;
+  const readyToRevise = complete && !finished;
+  function reset(nextLanguage = language) {
     setRun(null);
     setRunId(null);
     setError("");
-    history.replaceState(null, "", `?sdk=${value}`);
+    setPitch("");
+    setBusy(false);
+    loaded.current = null;
+    setLanguage(nextLanguage);
+    history.replaceState(null, "", `?sdk=${nextLanguage}`);
+    requestAnimationFrame(() => inputRef.current?.focus());
   }
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!prompt.trim() || busy) return;
+  async function start(retry = false) {
+    if (waiting) return;
     setBusy(true);
     setError("");
-    setRun(null);
-    setRunId(null);
-    if (matchMedia("(max-width: 850px)").matches)
-      requestAnimationFrame(() => {
-        const progress = document.getElementById("live-workflow");
-        progress?.focus({ preventScroll: true });
-        progress?.scrollIntoView({
-          behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
-            ? "instant"
-            : "smooth",
-          block: "start",
-        });
-      });
     try {
-      const started = await api<{ id: string }>(language, "/runs", {
-        prompt: prompt.trim(),
-        simulateFailure,
-      });
-      history.replaceState(null, "", `?sdk=${language}&run=${started.id}`);
-      setRunId(started.id);
+      const body =
+        retry && run
+          ? { retryRunId: run.id }
+          : {
+              pitch: pitch.trim(),
+              ...(readyToRevise && run ? { previousRunId: run.id } : {}),
+            };
+      const response = await api<{ id: string }>(language, "/runs", body);
+      setRun(null);
+      setRunId(response.id);
+      history.replaceState(null, "", `?sdk=${language}&run=${response.id}`);
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
     }
   }
-  const decision = run?.decision ?? null;
-  const answer = run?.answer;
-
   return (
     <>
       <header className="topbar">
-        <a className="brand" href="/" aria-label="Route Lab home">
-          <img src="/render-mark.svg" alt="" width="22" height="22" />
-          <span>Route Lab</span>
+        <a className="brand" href="/" aria-label="Start a new game">
+          <img src="/render-mark.svg" alt="" width="20" height="20" />
+          <span>Render demos</span>
         </a>
         <nav aria-label="Main navigation">
-          <button onClick={() => setPanel("models")}>Models</button>
           <button
-            onClick={() => {
-              setCodeLanguage(language);
-              setPanel("code");
-            }}
+            className="how-link"
+            aria-label="How it works"
+            onClick={() => setPanel("code")}
           >
-            Code
+            <Code2 size={16} />
+            <span>How it works</span>
           </button>
           <ProjectLinks />
         </nav>
       </header>
-      <main className={run || busy ? "has-run" : "welcome"}>
+      <main className="game">
         <div className="intro">
-          <h1>Ask a question</h1>
+          <h1>
+            Win the room<span>.</span>
+          </h1>
+          <p>Get two votes. You have two attempts.</p>
         </div>
-        <form className="composer" onSubmit={submit}>
-          <label htmlFor="prompt" className="sr-only">
-            Your prompt
-          </label>
-          <textarea
-            id="prompt"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            maxLength={6000}
-            placeholder="Ask a question, write some code, or solve a problem…"
-            disabled={busy}
-          />
-          <div className="composer-actions">
-            {example ? (
-              <span className="sdk-badge">
-                {example === "python" ? "Python" : "TypeScript"}
-              </span>
-            ) : (
-              <div
-                className="segmented"
-                role="group"
-                aria-label="Backend language"
-              >
-                {(["typescript", "python"] as const).map((value) => (
-                  <button
-                    type="button"
-                    key={value}
-                    aria-pressed={language === value}
-                    className={language === value ? "chosen" : ""}
-                    onClick={() => changeLanguage(value)}
-                    disabled={busy}
-                  >
-                    {value === "python" ? "Python" : "TypeScript"}
-                  </button>
+        <div className="room-meta">
+          <span>YOUR THREE JUDGES</span>
+          <span>
+            {run ? `ATTEMPT ${run.input.round} OF 2` : "FICTIONAL CHARACTERS"}
+          </span>
+        </div>
+        <section className="room" aria-label="The three judges">
+          {config.characters.map((person) => {
+            const current = run?.results.find(
+              (r) => r.characterId === person.id,
+            );
+            const step = run?.steps.find((s) => s.characterId === person.id);
+            const status = current
+              ? "done"
+              : step?.status === "failed" || step?.status === "canceled"
+                ? "failed"
+                : step?.startedAt && !terminal(step.status)
+                  ? "running"
+                  : waiting
+                    ? "queued"
+                    : run?.outcome?.failed.includes(person.id)
+                      ? "failed"
+                      : "idle";
+            return (
+              <Character
+                key={person.id}
+                person={person}
+                result={current}
+                previous={run?.input.previous.find(
+                  (r) => r.characterId === person.id,
+                )}
+                status={status}
+                onInspect={() => setPanel(person.id)}
+              />
+            );
+          })}
+        </section>
+        <div
+          className="round-status"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {finished ? (
+            <>
+              <Trophy size={18} />
+              <strong>
+                {run?.outcome?.won
+                  ? `You won over ${votes} of 3.`
+                  : `You won over ${votes} of 3. A tough room.`}
+              </strong>
+            </>
+          ) : readyToRevise ? (
+            <>
+              <span className="vote-dots">
+                {config.characters.map((c) => (
+                  <i
+                    key={c.id}
+                    className={
+                      run?.results.find((r) => r.characterId === c.id)?.vote ===
+                      "yes"
+                        ? "yes"
+                        : ""
+                    }
+                  />
                 ))}
-              </div>
-            )}
-            <button
-              className="run-button"
-              disabled={busy || !prompt.trim()}
-              type="submit"
-            >
-              {busy ? (
-                <>
-                  <LoaderCircle size={16} className="spin" /> Running
-                </>
-              ) : (
-                <>
-                  Run prompt <ArrowUp size={16} />
-                </>
-              )}
+              </span>
+              <strong>{votes} of 3 on board.</strong>
+              <span>Address their concerns. One attempt left.</span>
+            </>
+          ) : waiting ? (
+            <>
+              <LoaderCircle className="spin" size={14} />
+              <span>{run?.results.length ?? 0} of 3 responses received</span>
+            </>
+          ) : (
+            <span>Pitch an invention. See who you can convince.</span>
+          )}
+        </div>
+        {!finished ? (
+          <form
+            className="composer"
+            onSubmit={(e) => {
+              e.preventDefault();
+              start();
+            }}
+          >
+            <label htmlFor="pitch">
+              {readyToRevise ? "Your revised pitch" : "Your invention"}
+            </label>
+            <textarea
+              ref={inputRef}
+              id="pitch"
+              value={pitch}
+              onChange={(e) => setPitch(e.target.value)}
+              maxLength={config.maxPitchLength}
+              placeholder="What is it, and why should they want it?"
+              disabled={waiting || Boolean(run?.error)}
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  if (pitch.trim() && !waiting && !run?.error) start();
+                }
+              }}
+            />
+            <div className="composer-actions">
+              <span className="character-count">
+                {pitch.length} / {config.maxPitchLength}
+              </span>
+              <button
+                className="run-button"
+                type="submit"
+                disabled={
+                  waiting ||
+                  !pitch.trim() ||
+                  Boolean(run?.error) ||
+                  (readyToRevise && pitch.trim() === run?.input.pitch)
+                }
+              >
+                {waiting ? (
+                  <>
+                    <LoaderCircle className="spin" size={15} />
+                    Hearing your pitch
+                  </>
+                ) : (
+                  <>
+                    {readyToRevise
+                      ? "Try your revised pitch"
+                      : "Make your pitch"}
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="finished-actions">
+            <button className="run-button" onClick={() => reset()}>
+              Play again <RotateCcw size={15} />
+            </button>
+            <button className="text-button" onClick={() => setPanel("pitch")}>
+              View your pitch
             </button>
           </div>
-        </form>
+        )}
         {!run && !busy && (
-          <div className="examples" aria-label="Example prompts">
+          <div className="examples">
+            <span>Try an idea</span>
             {config.examples.map((ex) => (
               <button
-                type="button"
                 key={ex.label}
                 onClick={() => {
-                  setPrompt(ex.prompt);
-                  document.getElementById("prompt")?.focus();
+                  setPitch(ex.pitch);
+                  inputRef.current?.focus();
                 }}
               >
                 {ex.label}
-                <ArrowUpRight size={13} />
+                <ArrowRight size={12} />
               </button>
             ))}
           </div>
         )}
-        {simulateFailure && (
-          <p className="test-mode">
-            Failure demo is on.{" "}
-            <button onClick={() => setSimulateFailure(false)} disabled={busy}>
-              Turn off
-            </button>
-          </p>
-        )}
-        <Workflow run={run} busy={busy} mode={health?.mode || "connecting"} />
-        {error && (
+        {(error || run?.error) && (
           <div className="error-banner" role="alert">
-            <strong>Couldn’t connect</strong>
-            <p>{error}</p>
-            {runId && (
+            <p>{error || run?.error}</p>
+            {run?.error ? (
+              <button
+                className="secondary"
+                disabled={busy}
+                onClick={() => start(true)}
+              >
+                Retry missing votes
+              </button>
+            ) : runId ? (
               <button
                 className="secondary"
                 onClick={() => {
@@ -267,192 +328,100 @@ export default function App() {
               >
                 Reconnect
               </button>
-            )}
-          </div>
-        )}
-        {run?.error && (
-          <div className="error-banner" role="alert">
-            <strong>
-              {run.input.simulateFailure
-                ? "Failure demo finished"
-                : "This run failed"}
-            </strong>
-            <p>{run.error}</p>
+            ) : null}
             <button
-              className="secondary"
-              onClick={() => {
-                setSimulateFailure(false);
-                document.getElementById("prompt")?.focus();
-              }}
+              className="text-button"
+              disabled={busy}
+              onClick={() => reset()}
             >
-              <RotateCcw size={14} />
-              Try again
+              Start a new game
             </button>
           </div>
         )}
-        {run && <Decision key={run.id} run={run} language={language} />}
-        {decision && (answer || busy) && (
-          <section className="result" aria-label="Selected model and answer">
-            <div className="result-heading">
-              <div>
-                <span className="muted">{decision.model.name}</span>
-                <h2>Answer</h2>
-              </div>
+        <Workflow run={run} busy={waiting} mode={mode} />
+        <div className="sdk-line">
+          {example ? (
+            <span>
+              {example === "python" ? "Python" : "TypeScript"} example
+            </span>
+          ) : (
+            <div
+              className="segmented"
+              role="group"
+              aria-label="Backend language"
+            >
+              {(["typescript", "python"] as const).map((value) => (
+                <button
+                  key={value}
+                  aria-pressed={language === value}
+                  disabled={waiting}
+                  onClick={() => reset(value)}
+                >
+                  {value === "python" ? "Python" : "TypeScript"}
+                </button>
+              ))}
             </div>
-            {answer ? (
-              <>
-                <div className="markdown">
-                  <ReactMarkdown>{answer.text}</ReactMarkdown>
-                </div>
-                <div className="answer-receipt">
-                  <span>
-                    {(answer.durationMs / 1000).toFixed(1)}s
-                    {answer.usage?.total_tokens != null &&
-                      ` · ${answer.usage.total_tokens.toLocaleString()} tokens`}
-                    {answer.usage?.cost != null &&
-                      ` · $${answer.usage.cost.toFixed(6)}`}
-                  </span>
-                  <button
-                    className="text-button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(answer.text);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 1500);
-                      } catch {
-                        setError("Select the answer text to copy it.");
-                      }
-                    }}
-                  >
-                    {copied ? <Check size={14} /> : <Copy size={14} />}
-                    {copied ? "Copied" : "Copy"}
-                  </button>
-                </div>
-                {answer.finishReason === "length" && (
-                  <p className="warning-text">
-                    The answer reached the output limit and may be incomplete.
-                  </p>
-                )}
-              </>
-            ) : (
-              busy && (
-                <div className="answer-pending">
-                  <LoaderCircle size={16} className="spin" />
-                  <span>Writing the answer…</span>
-                </div>
-              )
-            )}
-          </section>
-        )}
+          )}
+          <span>Votes by TypeSafe AI · dialogue via OpenRouter</span>
+        </div>
       </main>
       <footer className="site-footer">
         <PoweredByRender />
       </footer>
-      {panel === "models" && (
-        <Panel title="Live models" close={() => setPanel(null)}>
-          <Catalog
-            promptBytes={new TextEncoder().encode(prompt).length}
-            catalog={catalog}
-            decision={decision}
-            loading={catalogLoading}
-            refresh={refreshCatalog}
-            error={catalogError}
-          />
+      {person && (
+        <Panel title={`${person.name}'s decision`} close={() => setPanel(null)}>
+          <Decision person={person} result={result} />
+        </Panel>
+      )}
+      {panel === "pitch" && (
+        <Panel title="Your pitch" close={() => setPanel(null)}>
+          <blockquote>{run?.input.pitch}</blockquote>
         </Panel>
       )}
       {panel === "code" && (
-        <Panel title="Workflow code" close={() => setPanel(null)}>
+        <Panel title="Behind the votes" close={() => setPanel(null)}>
+          <div className="about-panel">
+            <p className="panel-lead">Three tasks. Three different concerns.</p>
+            <dl>
+              <dt>Render Workflows</dt>
+              <dd>
+                Runs a task for each character in parallel. Failed evaluations
+                retry independently.
+              </dd>
+              <dt>TypeSafe AI</dt>
+              <dd>
+                Jev evaluates two criteria per character. The code turns those
+                results into a vote.
+              </dd>
+              <dt>OpenRouter</dt>
+              <dd>
+                Writes the short reaction after the decision. It cannot change
+                the vote.
+              </dd>
+            </dl>
+            <p className="fineprint">
+              Your pitch is processed by Render, TypeSafe, and OpenRouter. These
+              are fictional characters, not predictions of real people's
+              opinions. Run links include the submitted pitch and results.
+            </p>
+          </div>
           <div className="section-heading">
+            <h3>The actual workflow</h3>
             <div className="segmented">
               {(["typescript", "python"] as const).map((value) => (
                 <button
                   key={value}
-                  className={codeLanguage === value ? "chosen" : ""}
-                  onClick={() => setCodeLanguage(value)}
                   aria-pressed={codeLanguage === value}
+                  onClick={() => setCodeLanguage(value)}
                 >
                   {value === "python" ? "Python" : "TypeScript"}
                 </button>
               ))}
             </div>
           </div>
-          <div className="code-window">
-            <div>
-              {codeLanguage === "typescript"
-                ? "typescript/src/workflow.ts"
-                : "python/app/workflow.py"}
-            </div>
-            <pre>
-              <code>{codeLanguage === "typescript" ? tsCode : pyCode}</code>
-            </pre>
-          </div>
-          <button className="text-button" onClick={() => setPanel("about")}>
-            About this demo
-          </button>
-        </Panel>
-      )}
-      {panel === "about" && (
-        <Panel title="How it works" close={() => setPanel(null)}>
-          <div className="about-panel">
-            <dl>
-              <dt>TypeSafe AI</dt>
-              <dd>
-                Picks a model using its description, capabilities, and price.
-              </dd>
-              <dt>{config.provider.name}</dt>
-              <dd>Provides the live catalog and calls the selected model.</dd>
-              <dt>Render Workflows</dt>
-              <dd>
-                Runs each task, compares groups in parallel, and retries
-                failures.
-              </dd>
-            </dl>
-            <p>
-              Every run fetches the full catalog. Text-compatible models enter
-              groups of up to 200, below TypeSafe’s 255-choice limit. Group
-              winners enter a final selection.
-            </p>
-            <p>
-              Grouping can affect the winner. Selection probabilities are not a
-              measure of answer quality. Costs shown beside the answer cover
-              generation only.
-            </p>
-            <p>
-              Your prompt goes to TypeSafe, then to the chosen model through{" "}
-              {config.provider.name}.
-            </p>
-            <div className="about-links">
-              <a
-                href="https://docs.typesafe.ai/primitives/choice"
-                target="_blank"
-                rel="noreferrer"
-              >
-                TypeSafe docs <ArrowUpRight size={13} />
-              </a>
-              <a
-                href="https://render.com/docs/workflows"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Render docs <ArrowUpRight size={13} />
-              </a>
-            </div>
-            <div className="failure-option">
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={simulateFailure}
-                  disabled={busy}
-                  onChange={(e) => setSimulateFailure(e.target.checked)}
-                />
-                Try a failed task
-              </label>
-              <p>
-                The answer task fails on purpose. Watch Render retry it twice.
-                No answer-generation call is made.
-              </p>
-            </div>
-          </div>
+          <pre className="raw-scroll">
+            <code>{codeLanguage === "typescript" ? tsCode : pyCode}</code>
+          </pre>
         </Panel>
       )}
     </>

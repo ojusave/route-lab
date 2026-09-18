@@ -1,69 +1,66 @@
-export type Model = {
+export type Vote = "yes" | "undecided" | "no";
+export type Finding = "met" | "unclear" | "unmet";
+export type Character = {
   id: string;
   name: string;
-  description: string;
-  contextLength: number;
-  inputPrice: number | null;
-  outputPrice: number | null;
-  inputModalities: string[];
-  outputModalities: string[];
-  eligible: boolean;
-  exclusion: string | null;
-  reasoning: boolean;
+  role: string;
+  concern: string;
+  color: string;
+  criteria: { id: string; label: string; question: string }[];
 };
-export type Catalog = {
-  stage: "catalog";
-  models: Model[];
-  fetchedAt: string;
-  durationMs: number;
-};
-export type Shortlist = {
-  stage: "shortlist";
-  group: number;
-  candidates: number;
-  winner: Model;
+export type Judgment = {
+  id: string;
+  label: string;
+  question: string;
+  choice: Finding;
   confidence: number;
-  probabilities: Record<string, number>;
-  durationMs: number;
+  probabilities: Record<Finding, number>;
 };
-export type Decision = {
-  stage: "route";
-  choice: string;
-  confidence: number;
-  probabilities: Record<string, number>;
-  model: Model;
-  routerModel: string;
+export type CharacterResult = {
+  stage: "character";
+  characterId: string;
+  name: string;
+  vote: Vote;
+  previousVote: Vote | null;
+  judgments: Judgment[];
+  reaction: string;
+  reactionSource: "generated" | "authored";
+  typesafeModel: string;
+  dialogueModel: string | null;
+  decisionMs: number;
   durationMs: number;
-  candidateCount: number;
-  rounds: Shortlist[];
-  catalogFetchedAt: string;
-  usage: unknown;
+  rulesVersion: string;
+  instructions: string;
+  options: Record<string, string>;
+  state: { pitch: string; previousPitch: string | null };
+  minimumConfidence: number;
 };
-export type Answer = {
-  stage: "answer";
-  text: string;
-  model: string;
-  durationMs: number;
-  usage: {
-    prompt_tokens?: number;
-    completion_tokens?: number;
-    total_tokens?: number;
-    cost?: number;
-  } | null;
-  finishReason: string | null;
+export type RoundInput = {
+  pitch: string;
+  round: number;
+  previousRunId: string | null;
+  previousPitch: string | null;
+  previous: CharacterResult[];
+  carried: CharacterResult[];
+  recoveryOf: string | null;
 };
-export type Outcome = { decision: Decision; answer: Answer; state: string };
+export type Outcome = {
+  complete: boolean;
+  results: CharacterResult[];
+  failed: string[];
+  votes: number;
+  won: boolean;
+};
 export type RunStep = {
   id: string;
   taskName: string;
-  group?: number;
-  candidates?: number;
+  characterId?: string;
   status: string;
   retries: number;
   attempts: { attempt: number; status: string }[];
   startedAt?: string | null;
   completedAt?: string | null;
-  result: Catalog | Shortlist | Decision | Answer | Outcome | null;
+  result: CharacterResult | null;
 };
 export type Run = {
   id: string;
@@ -71,8 +68,8 @@ export type Run = {
   completedAt?: string;
   status: string;
   steps: RunStep[];
-  decision: Decision | null;
-  answer: Answer | null;
+  results: CharacterResult[];
+  outcome: Outcome | null;
   error: string | null;
-  input: { prompt: string; simulateFailure: boolean };
+  input: RoundInput;
 };

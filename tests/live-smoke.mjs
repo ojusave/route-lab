@@ -1,67 +1,85 @@
-import { writeFileSync } from "node:fs";
-const evidence = [];
-for (const [language, base] of [
-  ["typescript", process.env.TS_URL || "http://127.0.0.1:3001"],
-  ["python", process.env.PY_URL || "http://127.0.0.1:3002"],
-]) {
-  const start = Date.now();
-  const response = await fetch(`${base}/api/runs`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      prompt: "Explain how rainbows form in two sentences.",
-      simulateFailure: false,
-    }),
+import assert from "node:assert/strict";
+import { writeFileSync, mkdirSync } from "node:fs";
+const base = process.env.DEMO_API_URL || "http://127.0.0.1:3002/api";
+const terminal = (s) =>
+  ["completed", "succeeded", "failed", "canceled"].includes(s);
+async function call(path, body) {
+  const r = await fetch(base + path, {
+    ...(body
+      ? {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      : {}),
   });
-  const { id, error } = await response.json();
-  if (!id) throw new Error(`${language}: ${error}`);
-  console.log(language, "started", id);
-  let finished = false;
-  let previous = "";
-  while (Date.now() - start < 720_000) {
-    const r = await fetch(`${base}/api/runs/${id}`);
-    const run = await r.json();
-    if (!r.ok) throw new Error(JSON.stringify(run));
-    const status = run.steps
-      .map((s) => `${s.taskName}${s.group || ""}:${s.status}`)
-      .join(", ");
-    if (status !== previous) {
-      console.log(language, status);
-      previous = status;
-    }
-    if (["completed", "succeeded", "failed", "canceled"].includes(run.status)) {
-      const record = {
-        language,
-        id,
-        status: run.status,
-        elapsedMs: Date.now() - start,
-        model: run.decision?.choice,
-        candidates: run.decision?.candidateCount,
-        steps: run.steps.map((s) => ({
-          name: s.taskName,
-          group: s.group,
-          status: s.status,
-          attempts: s.attempts.length,
-        })),
-        answer: run.answer?.text,
-        error: run.error,
-      };
-      evidence.push(record);
-      console.log(JSON.stringify(record));
-      if (!run.answer) throw new Error(`${language} failed`);
-      const expected = Math.ceil(run.decision.candidateCount / 200) + 3;
-      if (run.steps.length !== expected)
-        throw new Error(
-          `Expected ${expected} child runs, got ${run.steps.length}`,
-        );
-      finished = true;
-      break;
-    }
-    await new Promise((r) => setTimeout(r, 1000));
-  }
-  if (!finished) throw new Error(`${language} timed out`);
+  const data = await r.json();
+  assert.ok(r.ok, JSON.stringify(data));
+  return data;
 }
+async function play(body) {
+  const start = await call("/runs", body);
+  let run;
+  for (let i = 0; i < 100; i++) {
+    run = await call("/runs/" + start.id);
+    if (terminal(run.status)) break;
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  assert.equal(
+    run.outcome?.complete,
+    true,
+    JSON.stringify({ status: run.status, error: run.error }),
+  );
+  assert.equal(run.steps.length, 3);
+  assert.ok(run.steps.every((s) => s.taskName === "evaluate_character"));
+  assert.ok(
+    run.results.every(
+      (r) => r.judgments.length === 2 && r.typesafeModel.startsWith("jev-"),
+    ),
+  );
+  return run;
+}
+const first = await play({
+  pitch:
+    "A little pot that waters your desk plant while you are away. No more coming back to a sad fern.",
+});
+const second = await play({
+  pitch:
+    "A $24 self-watering pot for people away for a week. A cotton wick draws water from a refillable reservoir into the soil, reducing daily watering compared with a normal pot. No subscription or electricity. It holds seven days of water, but is unsuitable for cacti and needs refilling before longer trips.",
+  previousRunId: first.id,
+});
+assert.equal(second.input.round, 2);
+assert.equal(second.input.previousPitch, first.input.pitch);
+assert.ok(
+  second.results.every(
+    (r) =>
+      r.previousVote ===
+      first.results.find((p) => p.characterId === r.characterId).vote,
+  ),
+);
+const blocked = await fetch(base + "/runs", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ pitch: "One more attempt", previousRunId: second.id }),
+});
+assert.equal(blocked.status, 409);
+mkdirSync("work", { recursive: true });
+const language = (await call("/health")).language;
 writeFileSync(
-  process.env.EVIDENCE_PATH || "tests/live-evidence.json",
-  JSON.stringify(evidence, null, 2),
+  `work/${language}-game-live.json`,
+  JSON.stringify({ first, second }, null, 2),
+);
+console.log(
+  JSON.stringify(
+    {
+      language,
+      first: { id: first.id, votes: first.outcome.votes },
+      second: { id: second.id, votes: second.outcome.votes },
+      thirdAttempt: blocked.status,
+      models: second.results.map((r) => r.typesafeModel),
+      reactions: second.results.map((r) => r.reactionSource),
+    },
+    null,
+    2,
+  ),
 );

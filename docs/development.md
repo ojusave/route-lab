@@ -1,69 +1,39 @@
 # Development notes
 
-## Task flow
+## What runs
 
-```mermaid
-flowchart LR
-  subgraph R[Render Workflows]
-    C[Fetch full catalog] --> G[TypeSafe groups in parallel]
-    G --> S[TypeSafe final choice]
-    S --> A[Generate answer]
-  end
-```
+Each `play_round` parent starts three `evaluate_character` tasks in parallel. Each child batches two TypeSafe Choice questions, applies a deterministic voting rule, and asks OpenRouter for a short reaction. The parent collects completed results and failures.
 
-The parent `answer_prompt` waits for all group tasks before starting the final choice. Every compatible model participates. Child tasks retry twice; the parent does not retry automatically. A new prompt run repeats the work.
+Child evaluations retry twice. The parent does not retry automatically. A recovery starts a new parent with completed results carried forward and schedules only missing characters. It preserves the pitch and round number. Dialogue errors use a labeled authored response without discarding the TypeSafe decision.
 
-The UI polls actual task state once a second. Its timeline positions each task using Render's `startedAt` and `completedAt` timestamps. Active bars update every 100 ms between status polls. A fixed time scale lets them grow left to right; longer runs extend the canvas and follow the current time instead of compressing earlier tasks. Scrolling back pauses following for that run. Completed runs loaded from a link fit in one view. Group bars overlap when tasks run together. These bars measure elapsed time, not a predicted completion percentage. Durations include waits and retries, so they are not execution-billing measurements. Retry counts are observed attempts; separate attempt spans are not invented. Answers appear when generation finishes. Opening a run URL reconnects to that run; refreshing does not submit it again. The failure option stops the answer task before calling the provider, so its retries do not spend generation credits.
+## Decisions and state
+
+Characters, criteria, examples, and options live in `shared/config.json`. A confident unmet criterion means no. Both criteria met with confidence at least 0.35 means yes. Otherwise the vote is undecided. This cutoff is a game policy, not an empirical accuracy guarantee.
+
+TypeSafe receives the latest pitch, previous pitch when present, and two narrow criterion questions. The latest pitch replaces the old one. Every result snapshots the instructions, options, probabilities, confidence, model, cutoff, and rules version. Clicking a character shows these inputs and returned fields. Generated dialogue does not expose Jev's internal reasoning or control the vote.
+
+The server retrieves a previous run from its own workflow before allowing a revision. Clients cannot supply votes, criteria, or a round number. A third round is rejected. A failed round can be recovered without consuming the second attempt. Starting a new game is always allowed; this is not a competitive leaderboard. Old model-router links are not game runs.
+
+There is no application database. Render retains the run state, so links can reconnect to a round while it remains available. URLs are bearer links to the pitch and results. Public requests are capped at 700 characters and 12 round starts per minute per observed IP in each web process. This is a small demo limit, not a distributed abuse-prevention system.
+
+## Live interface
+
+The UI polls real task state every 1.2 seconds. Active bars update the elapsed display every 100 ms using Render timestamps. Parallel spans overlap. A fixed scale preserves left-to-right growth; longer runs extend the scrollable canvas. Durations include waits and retries and are not billing estimates. Completed bars do not keep growing.
+
+Each task becomes visible when Render reports it. Character results appear when the child task finishes. A missing result does not become a negative vote. The game announces an outcome only after all three results exist.
 
 ## Provider boundary
 
-Both examples expose two adapter operations:
+TypeSafe calls live in `judge.ts` / `judge.py`. OpenRouter calls live in `adapters/openrouter.ts` / `adapters/openrouter.py`, exported by `provider`. An alternative text provider needs an adapter that accepts the existing decision and returns text plus a model ID. Voting and workflow code stay the same. No alternate provider is implemented or tested.
 
-- **Catalog:** return normalized models, fetch time, and duration.
-- **Generate:** accept a prompt and normalized model; return text, model ID, usage, duration, and finish reason.
+`OPENROUTER_MODEL` optionally changes the dialogue model. The default is `openai/gpt-4.1-mini`. The game no longer chooses among a model catalog; text generation is a supporting step. No secrets belong in frontend environment variables.
 
-TypeScript checks this contract in `typescript/src/provider.ts`; shared payload shapes are in `shared/types.ts`. Python uses the same JSON shapes through `python/app/provider.py`. Each provider’s HTTP requests and response mapping belong in its adapter.
+## Deploy and verify
 
-Together AI or another provider may need a separate catalog source, pricing metadata, different model IDs, or different reasoning parameters. Implement those in the new adapter, then change the provider import, environment variables, and display labels in `shared/config.json`. No alternate provider has been implemented or tested here.
+The root Blueprint deploys TypeScript. `python/render.yaml` deploys Python. Both run build commands from the repository root and use paid web compute plus usage-billed workflow tasks. Provider keys use `sync: false`; the workflow build checks for blank values.
 
-The model policy is also in `shared/config.json`. It uses descriptions, context, capabilities, and prices. It cannot establish answer quality. TypeSafe’s observed 255-choice limit requires grouped selection; final probabilities apply only to group winners. Generation cost excludes TypeSafe and Render charges.
+Render links preserve `github / referral / ojus_demos` UTMs. Both deploy buttons retain the chosen Blueprint path through login. README links request a new tab in HTML; GitHub controls which HTML attributes its renderer retains.
 
-The comparison view shows actual `Choice` probabilities as each Render task finishes. Each group has an independent distribution; the final round compares only group winners. The highest-probability option is selected. TypeSafe's `confidence` summarizes the distribution's concentration and differs from the winning option's probability. Neither measures answer quality. The API does not return a written rationale or per-feature attribution. See [Choice](https://docs.typesafe.ai/primitives/choice) and [Confidence](https://docs.typesafe.ai/confidence).
+Run `npm run build`, `npm test`, and `python/.venv/bin/python -m unittest discover -s python`. With the local servers running, `node tests/live-smoke.mjs` exercises Python; set `DEMO_API_URL=http://127.0.0.1:3001/api` for TypeScript. It makes real provider calls. `node tests/ui-smoke.mjs` checks the interface with recorded task fixtures and Chrome.
 
-**Inputs & response** uses the run's saved prompt and catalog metadata, including the 200-character description used by routing. The routing rule is labeled current because older runs do not snapshot instructions. The interface shows returned fields rather than generating an explanation after the decision. More explicit decision rules would require decomposing judgments and combining their results in code, as described in [TypeSafe primitives](https://docs.typesafe.ai/primitives).
-
-## Deployment
-
-The root Blueprint deploys TypeScript. `python/render.yaml` deploys Python. Deploy links preserve `path=render.yaml` or `path=python/render.yaml` in Render's sign-in `next` URL; the generic signed-out deploy redirect drops that path. Signed-in visitors continue to the selected Blueprint. The footer links to Render Workflows with the existing UTM attribution. Each web service serves a separate frontend build and calls its own Workflow. The two examples share frontend source and the routing policy, but have no runtime dependency on each other.
-
-Provider keys stay on the Workflow. Both Blueprints prompt for `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` with `sync: false`. The shared `scripts/check-provider-keys.sh` runs before either Workflow build and rejects missing, empty, or whitespace-only values without printing secrets. This checks presence, not whether a provider accepts the credential. The web service needs a Render API key and a Workflow slug. The Blueprint supplies the slug through `fromService`. Auto-deploy is off.
-
-Run IDs act as shareable links to prompts and results. Each app rejects runs belonging to another Workflow. This demo has no user authentication or shared spending quota. Use provider spending limits or add access controls for unrestricted public traffic. External provider calls are not exactly once: a retry after an ambiguous timeout can incur another charge.
-
-## Checks
-
-```sh
-npm run build
-npm test
-python/.venv/bin/python -m unittest discover -s python -p 'test_*.py'
-render blueprints validate render.yaml -o json
-render blueprints validate python/render.yaml -o json
-```
-
-With local servers running, `node tests/live-smoke.mjs` and `node tests/failure-smoke.mjs` use real provider credits. Evidence files under `tests/` record local and hosted runs. Both hosted examples completed real 439-model runs and deliberate three-attempt failures on September 17, 2026. `cloud-deployment-evidence.json` records their resources and deployed revisions. Local task history disappears when the CLI task server stops. Launcher logs are in ignored `work/dev.log`.
-
-## README links
-
-Example setup and deployment instructions live in `typescript/README.md` and `python/README.md`; the root README is an index. GitHub's Markdown renderer removes `target="_blank"`, so README links cannot force a new tab there. This was checked with GitHub's Markdown API. Use Cmd-click or Ctrl-click to open links in a new tab. The hosted demo's external links already request new tabs.
-
-## Forking
-
-```sh
-npm run configure:repo -- https://github.com/YOUR_OWNER/YOUR_REPOSITORY
-```
-
-This updates both Blueprints and local frontend links. Render builds derive the repository URL from `RENDER_GIT_REPO_SLUG`; `VITE_REPOSITORY_URL` overrides it. Render links use `github / referral / ojus_demos` UTMs, with placement-specific `utm_content` values.
-
-## API references
-
-[Render task definitions](https://render.com/docs/workflows-defining) · [Workflow Blueprint support](https://render.com/changelog/added-blueprint-support-for-render-workflows) · [Blueprint schema](https://render.com/docs/blueprint-spec) · [TypeSafe Choice](https://docs.typesafe.ai/primitives/choice) · [OpenRouter catalog](https://openrouter.ai/api/v1/models)
+[TypeSafe Choice](https://docs.typesafe.ai/primitives/choice) · [Render tasks](https://render.com/docs/workflows-defining) · [Blueprint reference](https://render.com/docs/blueprint-spec)

@@ -5,13 +5,6 @@ import config from "../../shared/config.json";
 import { durationLabel, timeline, timelineScale } from "./timeline";
 import { terminal } from "./api";
 
-const labels: Record<string, [string, string]> = {
-  load_models: ["Fetch models", config.provider.name],
-  shortlist_models: ["Compare", "TypeSafe"],
-  choose_model: ["Pick model", "TypeSafe"],
-  write_answer: ["Answer", config.provider.name],
-};
-
 function Status({ status }: { status: string }) {
   if (status === "completed" || status === "succeeded")
     return <Check size={12} />;
@@ -39,17 +32,14 @@ export default function TaskTimeline({ run, now }: { run: Run; now: number }) {
     const track = view.querySelector<HTMLElement>(".timeline-track");
     if (!track) return;
     const visibleTrack = track.clientWidth / scale.pages;
-    view.scrollLeft = Math.max(
-      0,
-      (chart.extent / windowMs - 1) * visibleTrack,
-    );
+    view.scrollLeft = Math.max(0, (chart.extent / windowMs - 1) * visibleTrack);
     lastScroll.current = view.scrollLeft;
   }, [chart.extent, scale.pages, windowMs, run.status]);
   const rows = [
     {
       id: run.id,
-      taskName: "answer_prompt",
-      label: "Workflow",
+      taskName: "play_round",
+      label: "Round",
       provider: "Render",
       status: run.status,
       start: chart.origin,
@@ -59,9 +49,11 @@ export default function TaskTimeline({ run, now }: { run: Run; now: number }) {
     },
     ...chart.rows.map(({ step, start, duration }) => ({
       id: step.id,
-      taskName: step.taskName,
-      label: `${labels[step.taskName]?.[0] ?? step.taskName}${step.group ? ` ${step.group}` : ""}`,
-      provider: labels[step.taskName]?.[1] ?? "Render",
+      taskName: step.characterId ?? step.taskName,
+      label:
+        config.characters.find((c) => c.id === step.characterId)?.name ??
+        step.taskName,
+      provider: "Evaluate + reply",
       status: step.status,
       start,
       duration,

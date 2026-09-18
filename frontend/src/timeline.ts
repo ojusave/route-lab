@@ -1,11 +1,5 @@
 import type { Run, RunStep } from "../../shared/types";
 
-const phases = [
-  "load_models",
-  "shortlist_models",
-  "choose_model",
-  "write_answer",
-];
 const finished = (status: string) =>
   ["completed", "succeeded", "failed", "canceled"].includes(status);
 const timestamp = (value?: string | null) => {
@@ -37,8 +31,8 @@ export function timeline(run: Run, now: number) {
   const rows = [...run.steps]
     .sort(
       (a, b) =>
-        phases.indexOf(a.taskName) - phases.indexOf(b.taskName) ||
-        (a.group ?? 0) - (b.group ?? 0),
+        ["mina", "ravi", "jules"].indexOf(a.characterId ?? "") -
+        ["mina", "ravi", "jules"].indexOf(b.characterId ?? ""),
     )
     .map((step) => ({ step, ...interval(step, observedNow) }));
   const starts = rows.flatMap((row) => (row.start === null ? [] : [row.start]));

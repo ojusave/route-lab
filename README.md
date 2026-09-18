@@ -1,12 +1,10 @@
-# Route Lab
+# Win the room
 
-Render Workflows runs parallel model comparisons and retries. TypeSafe chooses a model; OpenRouter generates the answer.
+A small persuasion game built with **Render Workflows**, **TypeSafe AI**, and **OpenRouter**. Pitch an invention to three fictional judges. Get two votes in two attempts.
 
-| Example | Setup and deployment | Live demo |
-| --- | --- | --- |
-| TypeScript | [TypeScript README](typescript/README.md) | [Open demo](https://route-lab-typescript-web.onrender.com) |
-| Python | [Python README](python/README.md) | [Open demo](https://route-lab-python-web.onrender.com) |
+| Example    | Setup and deployment                                                                           | Play                                                                                                            |
+| ---------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| TypeScript | <a href="typescript/README.md" target="_blank" rel="noopener noreferrer">TypeScript README</a> | <a href="https://route-lab-typescript-web.onrender.com" target="_blank" rel="noopener noreferrer">Open demo</a> |
+| Python     | <a href="python/README.md" target="_blank" rel="noopener noreferrer">Python README</a>         | <a href="https://route-lab-python-web.onrender.com" target="_blank" rel="noopener noreferrer">Open demo</a>     |
 
-Each example has its own deploy button and runs independently on Render.
-
-[Technical notes](docs/development.md)
+Both examples deploy independently. They share the UI and character rules.

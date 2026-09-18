@@ -1,5 +1,5 @@
 import { Render } from "@renderinc/sdk";
-import type { Answer, Decision, Run, RunStep } from "../../shared/types";
+import type { Outcome, RoundInput, Run, RunStep } from "../../shared/types";
 
 export const render = new Render();
 export const workflow =
@@ -32,12 +32,12 @@ async function verifyDemoRun(root: {
   parentTaskRunId?: string;
 }) {
   const metadata = await taskMetadata(root.taskId);
-  if (metadata.name !== "answer_prompt" || root.parentTaskRunId)
+  if (metadata.name !== "play_round" || root.parentTaskRunId)
     throw new RunNotFound();
   if (!process.env.RENDER_LOCAL_DEV_URL) {
     if (!workflowId) {
       const matching = await readMetadata(
-        `tasks?taskSlug=${encodeURIComponent(`${workflow}/answer_prompt`)}&limit=1`,
+        `tasks?taskSlug=${encodeURIComponent(`${workflow}/play_round`)}&limit=1`,
       );
       workflowId = matching[0]?.task?.workflowId;
     }
@@ -70,11 +70,8 @@ export async function readRun(id: string): Promise<Run> {
           taskName: name,
           status: r.status,
           retries: r.retries,
-          group: name === "shortlist_models" ? (input[2] as number) : undefined,
-          candidates:
-            name === "shortlist_models"
-              ? (input[1] as unknown[]).length
-              : undefined,
+          characterId:
+            name === "evaluate_character" ? (input[1] as string) : undefined,
           attempts: (r.attempts ?? []).map((a) => ({
             attempt: a.attempt,
             status: a.status,
@@ -85,38 +82,27 @@ export async function readRun(id: string): Promise<Run> {
         };
       }),
   );
-  const final = root.results?.[0] as
-    | { decision?: Decision; answer?: Answer }
-    | undefined;
-  const decision =
-    final?.decision ??
-    (steps
-      .map((s) => s.result)
-      .find((r) => r && "stage" in r && r.stage === "route") as
-      | Decision
-      | undefined);
-  const answer =
-    final?.answer ??
-    (steps
-      .map((s) => s.result)
-      .find((r) => r && "stage" in r && r.stage === "answer") as
-      | Answer
-      | undefined);
-  const args = root.input as [string, boolean];
+
+  const final = root.results?.[0] as Outcome | undefined;
+  const input = (root.input as [RoundInput])[0];
+  const results = final?.results ?? [
+    ...input.carried,
+    ...steps.flatMap((s) => (s.result ? [s.result] : [])),
+  ];
   return {
     id,
     startedAt: root.startedAt,
     completedAt: root.completedAt,
     status: root.status,
     steps,
-    decision: decision ?? null,
-    answer: answer ?? null,
-    input: { prompt: args[0], simulateFailure: args[1] ?? false },
+    input,
+    results,
+    outcome: final ?? null,
     error:
-      root.status === "failed"
-        ? args[1]
-          ? "Intentional demo failure. Render retried the answer task. Turn off failure mode and run again."
-          : "A provider task failed after its configured attempts. Check the server credentials, provider access, or retry the request."
+      final?.failed.length ||
+      root.status === "failed" ||
+      root.status === "canceled"
+        ? "Some characters could not finish. Retry the missing votes; your attempt is saved."
         : null,
   };
 }

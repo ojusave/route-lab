@@ -1,56 +1,67 @@
 import asyncio
+from time import perf_counter
 from render import Retry, TaskContext, Workflows
-from app import provider
-from app.routing import model_groups, shortlist, decide
+from app.game import CHARACTERS, summarize
+from app.judge import judge
+from app.provider import react_to_pitch
 
 app = Workflows(
     default_plan="flex",
     default_retry=Retry(max_retries=2, wait_duration_ms=1000, backoff_scaling=2),
-    default_timeout=120,
+    default_timeout=60,
 )
 
 
-@app.task(timeout_seconds=30)
-async def load_models(ctx: TaskContext) -> dict:
-    return await provider.fetch_catalog()
-
-
-@app.task(timeout_seconds=90)
-async def shortlist_models(
-    ctx: TaskContext, prompt: str, models: list[dict], group: int
-) -> dict:
-    return await shortlist(prompt, models, group)
-
-
-@app.task(timeout_seconds=90)
-async def choose_model(
-    ctx: TaskContext, prompt: str, rounds: list[dict], fetched_at: str
-) -> dict:
-    return await decide(prompt, rounds, fetched_at)
-
-
 @app.task
-async def write_answer(
-    ctx: TaskContext, prompt: str, decision: dict, simulate_failure: bool
-) -> dict:
-    if simulate_failure:
-        raise ValueError("Demo failure: the answer task failed before calling the provider.")
-    return await provider.generate(prompt, decision["model"])
-
-
-# Only child tasks retry. A new parent run can repeat previously completed work.
-@app.task(retry=Retry(max_retries=0, wait_duration_ms=1000), timeout_seconds=720)
-async def answer_prompt(ctx: TaskContext, prompt: str, simulate_failure: bool) -> dict:
-    catalog = await ctx.run(load_models)
-    rounds = await asyncio.gather(
-        *(
-            ctx.run(shortlist_models, prompt, models, i + 1)
-            for i, models in enumerate(model_groups(catalog, prompt))
-        )
+async def evaluate_character(ctx: TaskContext, data: dict, character_id: str) -> dict:
+    started = perf_counter()
+    decision = await judge(data, character_id)
+    concern = next(
+        (
+            j
+            for j in decision["judgments"]
+            if j["choice"] != "met" or j["confidence"] < decision["minimumConfidence"]
+        ),
+        None,
     )
-    decision = await ctx.run(choose_model, prompt, rounds, catalog["fetchedAt"])
-    answer = await ctx.run(write_answer, prompt, decision, simulate_failure)
-    return dict(state="completed", decision=decision, answer=answer)
+    fallback = (
+        "That addresses both of my concerns. I'm in."
+        if decision["vote"] == "yes"
+        else f"Tell me more: {concern['label'].lower() if concern else 'how would this help me'}?"
+    )
+    # A dialogue outage must not discard the decision or invent a new vote.
+    try:
+        dialogue = await react_to_pitch(decision)
+    except (Exception,):
+        dialogue = None
+    return {
+        **decision,
+        "reaction": dialogue["text"] if dialogue else fallback,
+        "reactionSource": "generated" if dialogue else "authored",
+        "dialogueModel": dialogue["model"] if dialogue else None,
+        "durationMs": round((perf_counter() - started) * 1000),
+    }
+
+
+# Retry children, not the parent. Recovery reuses completed character results.
+@app.task(retry=Retry(max_retries=0, wait_duration_ms=1000), timeout_seconds=240)
+async def play_round(ctx: TaskContext, data: dict) -> dict:
+    pending = [
+        c
+        for c in CHARACTERS
+        if c["id"] not in {r["characterId"] for r in data["carried"]}
+    ]
+    settled = await asyncio.gather(
+        *(ctx.run(evaluate_character, data, c["id"]) for c in pending),
+        return_exceptions=True,
+    )
+    results, failed = list(data["carried"]), []
+    for person, result in zip(pending, settled):
+        if isinstance(result, BaseException):
+            failed.append(person["id"])
+        else:
+            results.append(result)
+    return summarize(results, failed)
 
 
 if __name__ == "__main__":

@@ -1,67 +1,63 @@
 import { task } from "@renderinc/sdk/workflows";
-import { modelGroups, shortlist, decide } from "./routing";
-import { provider } from "./provider";
-import type { Decision, Model, Shortlist } from "../../shared/types";
+import { characters, summarize } from "./game";
+import { judge } from "./judge";
+import { reactToPitch } from "./provider";
+import type { CharacterResult, RoundInput } from "../../shared/types";
 
-const retry = { maxRetries: 2, waitDurationMs: 1000, backoffScaling: 2 };
-const loadModels = task(
-  { name: "load_models", plan: "flex", retry, timeoutSeconds: 30 },
-  async () => provider.fetchCatalog(),
-);
-const shortlistModels = task(
-  { name: "shortlist_models", plan: "flex", retry, timeoutSeconds: 90 },
-  async (_ctx, prompt: string, models: Model[], group: number) =>
-    shortlist(prompt, models, group),
-);
-const chooseModel = task(
-  { name: "choose_model", plan: "flex", retry, timeoutSeconds: 90 },
-  async (_ctx, prompt: string, rounds: Shortlist[], fetchedAt: string) =>
-    decide(prompt, rounds, fetchedAt),
-);
-const writeAnswer = task(
-  { name: "write_answer", plan: "flex", retry, timeoutSeconds: 120 },
+export const evaluateCharacter = task(
+  {
+    name: "evaluate_character",
+    plan: "flex",
+    timeoutSeconds: 60,
+    retry: { maxRetries: 2, waitDurationMs: 1000, backoffScaling: 2 },
+  },
   async (
     _ctx,
-    prompt: string,
-    decision: Decision,
-    simulateFailure: boolean,
-  ) => {
-    if (simulateFailure)
-      throw new Error(
-        "Demo failure: the answer task failed before calling the provider.",
-      );
-    return provider.generate(prompt, decision.model);
+    input: RoundInput,
+    characterId: string,
+  ): Promise<CharacterResult> => {
+    const started = performance.now();
+    const decision = await judge(input, characterId);
+    const concern = decision.judgments.find(
+      (j) => j.choice !== "met" || j.confidence < decision.minimumConfidence,
+    );
+    const fallback =
+      decision.vote === "yes"
+        ? "That addresses both of my concerns. I'm in."
+        : `Tell me more: ${concern?.label.toLowerCase() ?? "how would this help me"}?`;
+    // A dialogue outage must not discard a completed decision or invent a new vote.
+    const dialogue = await reactToPitch(decision).catch(() => null);
+    return {
+      ...decision,
+      reaction: dialogue?.text ?? fallback,
+      reactionSource: dialogue ? "generated" : "authored",
+      dialogueModel: dialogue?.model ?? null,
+      durationMs: Math.round(performance.now() - started),
+    };
   },
 );
 
-// No parent retry: restarting a parent can repeat previously completed subtasks.
-task(
+// Retry children, not the parent. A recovery run reuses completed character results.
+export const playRound = task(
   {
-    name: "answer_prompt",
+    name: "play_round",
     plan: "flex",
+    timeoutSeconds: 240,
     retry: { maxRetries: 0, waitDurationMs: 1000 },
-    timeoutSeconds: 720,
   },
-  async (ctx, prompt: string, simulateFailure: boolean) => {
-    const catalog = await ctx.run(loadModels);
-    // Every eligible model participates. TypeSafe allows at most 255 choices per question.
-    const rounds = await Promise.all(
-      modelGroups(catalog, prompt).map((models, i) =>
-        ctx.run(shortlistModels, prompt, models, i + 1),
-      ),
+  async (ctx, input: RoundInput) => {
+    const pending = characters.filter(
+      (c) => !input.carried.some((r) => r.characterId === c.id),
     );
-    const decision = await ctx.run(
-      chooseModel,
-      prompt,
-      rounds,
-      catalog.fetchedAt,
+    const settled = await Promise.allSettled(
+      pending.map((c) => ctx.run(evaluateCharacter, input, c.id)),
     );
-    const answer = await ctx.run(
-      writeAnswer,
-      prompt,
-      decision,
-      simulateFailure,
-    );
-    return { state: "completed", decision, answer };
+    const results = [...input.carried];
+    const failed: string[] = [];
+    settled.forEach((item, index) => {
+      if (item.status === "fulfilled") results.push(item.value);
+      else failed.push(pending[index].id);
+    });
+    return summarize(results, failed);
   },
 );

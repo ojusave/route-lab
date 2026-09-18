@@ -8,11 +8,11 @@ const task = (
   id: string,
   start: number,
   end: number | null,
-  group?: number,
+  characterId?: string,
 ): RunStep => ({
   id,
-  taskName: group ? "shortlist_models" : "load_models",
-  group,
+  taskName: "evaluate_character",
+  characterId,
   startedAt: at(start),
   completedAt: end === null ? null : at(end),
   status: end === null ? "running" : "completed",
@@ -26,18 +26,26 @@ const run = (steps: RunStep[]): Run => ({
   startedAt: at(1000),
   completedAt: at(7000),
   steps,
-  decision: null,
-  answer: null,
+  results: [],
+  outcome: null,
   error: null,
-  input: { prompt: "test", simulateFailure: false },
+  input: {
+    pitch: "test",
+    round: 1,
+    previousRunId: null,
+    previousPitch: null,
+    previous: [],
+    carried: [],
+    recoveryOf: null,
+  },
 });
 
-test("parallel groups retain their observed overlap and ordered labels", () => {
+test("parallel characters retain their observed overlap and ordered labels", () => {
   const chart = timeline(
     run([
-      task("group2", 3001, 4900, 2),
-      task("catalog", 1200, 2400),
-      task("group1", 3000, 5000, 1),
+      task("group2", 3001, 4900, "jules"),
+      task("catalog", 1200, 2400, "mina"),
+      task("group1", 3000, 5000, "ravi"),
     ]),
     9000,
   );
