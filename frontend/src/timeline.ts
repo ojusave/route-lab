@@ -55,3 +55,12 @@ export function durationLabel(ms: number | null) {
   if (ms === 0) return "0s";
   return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
+
+export function timelineScale(extent: number, windowMs = 10_000) {
+  const pages = Math.max(1, Math.ceil(extent / windowMs));
+  return {
+    pages,
+    rangeMs: pages * windowMs,
+    ticks: Array.from({ length: pages * 4 + 1 }, (_, i) => (i * windowMs) / 4),
+  };
+}

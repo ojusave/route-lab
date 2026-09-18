@@ -23,7 +23,8 @@ export default function Workflow({
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     if (!busy) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(timer);
   }, [busy]);
   if (!run && !busy) return null;
@@ -71,13 +72,8 @@ export default function Workflow({
         </span>
       </div>
       {(busy || run) && (
-        <div
-          className="live-headline"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          <span>
+        <div className="live-headline">
+          <span role="status" aria-live="polite" aria-atomic="true">
             {busy ? (
               <LoaderCircle size={14} className="spin" />
             ) : run?.answer ? (
@@ -90,7 +86,7 @@ export default function Workflow({
           <time>{elapsed !== null ? durationLabel(elapsed) : ""}</time>
         </div>
       )}
-      {run && <TaskTimeline run={run} now={now} />}
+      {run && <TaskTimeline key={run.id} run={run} now={now} />}
       {run && (
         <details className="trace">
           <summary>

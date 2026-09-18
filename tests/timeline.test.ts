@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import type { Run, RunStep } from "../shared/types";
-import { timeline } from "../frontend/src/timeline";
+import { timeline, timelineScale } from "../frontend/src/timeline";
 
 const at = (ms: number) => new Date(ms).toISOString();
 const task = (
@@ -88,4 +88,26 @@ test("a newly observed completion cannot extend past the active parent", () => {
   const chart = timeline(sample, 3500);
   assert.equal(chart.duration, 3000);
   assert.equal(chart.extent, 3000);
+});
+
+test("the live scale leaves room for forward progress", () => {
+  const early = timelineScale(1500);
+  const later = timelineScale(3000);
+  assert.equal(early.rangeMs, 10_000);
+  assert.equal(later.rangeMs, early.rangeMs);
+  assert.ok(3000 / later.rangeMs > 1500 / early.rangeMs);
+});
+
+test("extending the canvas preserves task positions and widths in pixels", () => {
+  const before = timelineScale(9900);
+  const after = timelineScale(10100);
+  const pixels = (ms: number, scale: ReturnType<typeof timelineScale>) =>
+    (ms / scale.rangeMs) * (500 * scale.pages);
+  assert.equal(pixels(2000, before), pixels(2000, after));
+  assert.ok(pixels(10100, after) > pixels(9900, before));
+  assert.equal(after.pages, 2);
+  assert.deepEqual(
+    after.ticks,
+    [0, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000],
+  );
 });
