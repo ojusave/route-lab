@@ -42,6 +42,7 @@ services:
         value: "24"
       - key: PYTHON_VERSION
         value: 3.13.7
+      # Render prompts for both provider API keys when creating this Workflow.
       - key: TYPESAFE_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY

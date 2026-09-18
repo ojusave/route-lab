@@ -52,6 +52,10 @@ render blueprints validate python/render.yaml -o json
 
 With local servers running, `node tests/live-smoke.mjs` and `node tests/failure-smoke.mjs` use real provider credits. Evidence files under `tests/` record local and hosted runs. Both hosted examples completed real 439-model runs and deliberate three-attempt failures on September 17, 2026. `cloud-deployment-evidence.json` records their resources and deployed revisions. Local task history disappears when the CLI task server stops. Launcher logs are in ignored `work/dev.log`.
 
+## README links
+
+Example setup and deployment instructions live in `typescript/README.md` and `python/README.md`; the root README is an index. GitHub's Markdown renderer removes `target="_blank"`, so README links cannot force a new tab there. This was checked with GitHub's Markdown API. Use Cmd-click or Ctrl-click to open links in a new tab. The hosted demo's external links already request new tabs.
+
 ## Forking
 
 ```sh

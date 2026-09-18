@@ -38,6 +38,7 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "24"
+      # Render prompts for both provider API keys when creating this Workflow.
       - key: TYPESAFE_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY
