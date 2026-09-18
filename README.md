@@ -15,7 +15,7 @@ TypeSafe returns a typed model choice. OpenRouter generates the answer.
 
 </div>
 
-![Live Render tasks and an answer selected with TypeSafe](docs/demo.jpg)
+![Render task timeline with parallel TypeSafe comparisons](docs/demo.jpg)
 
 ## Deploy an example
 
@@ -23,10 +23,10 @@ Each example creates its own **paid web service and Workflow**.
 
 | [TypeScript](typescript/README.md) | [Python](python/README.md) |
 | --- | --- |
-| [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fojusave%2Froute-lab&utm_source=github&utm_medium=referral&utm_campaign=ojus_demos&utm_content=readme_deploy_typescript) | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fojusave%2Froute-lab&utm_source=github&utm_medium=referral&utm_campaign=ojus_demos&utm_content=readme_deploy_python) |
+| [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://dashboard.render.com/login?utm_source=github&utm_medium=referral&utm_campaign=ojus_demos&utm_content=readme_deploy_typescript&next=%2Fblueprint%2Fnew%3Frepo%3Dhttps%253A%252F%252Fgithub.com%252Fojusave%252Froute-lab%26utm_source%3Dgithub%26utm_medium%3Dreferral%26utm_campaign%3Dojus_demos%26utm_content%3Dreadme_deploy_typescript%26path%3Drender.yaml) | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://dashboard.render.com/login?utm_source=github&utm_medium=referral&utm_campaign=ojus_demos&utm_content=readme_deploy_python&next=%2Fblueprint%2Fnew%3Frepo%3Dhttps%253A%252F%252Fgithub.com%252Fojusave%252Froute-lab%26utm_source%3Dgithub%26utm_medium%3Dreferral%26utm_campaign%3Dojus_demos%26utm_content%3Dreadme_deploy_python%26path%3Dpython%252Frender.yaml) |
 | Blueprint Path: `render.yaml` | Blueprint Path: `python/render.yaml` |
 
-Set the indicated **Blueprint Path**, leave **Root Directory** empty, and enter:
+The buttons select the matching Blueprint. Enter:
 
 - `RENDER_API_KEY`: starts tasks and reads progress from the web service.
 - `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY`: used only by the Workflow.
@@ -35,9 +35,9 @@ The Blueprint wires the Workflow slug automatically. Web services use `0.5c-512m
 
 ## What to try
 
-1. Run an example prompt. Follow the live task states.
+1. Run an example prompt. Watch the task timeline, including parallel comparisons and elapsed time.
 2. Compare TypeSafe’s probabilities in **Group 1**, **Group 2**, and **Final choice**. Expand **Inputs & response** to inspect the routing rule and model data.
-3. In **About this demo**, enable **Try a failed task**. Run again and expand **Run details** to see three answer attempts while earlier results remain available.
+3. In **Code → About this demo**, enable **Try a failed task**. Run again and expand **Run details** to see three answer attempts while earlier results remain available.
 
 **Models** opens the full, freshly fetched catalog. **Code** shows the actual Workflow definitions.
 

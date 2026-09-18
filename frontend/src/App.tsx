@@ -17,7 +17,7 @@ import Catalog from "./Catalog";
 import Decision from "./Decision";
 import Workflow from "./Workflow";
 import Panel from "./Panel";
-import { ProjectLinks, SignupLink } from "./ProjectLinks";
+import { ProjectLinks, PoweredByRender } from "./ProjectLinks";
 
 export default function App() {
   const params = new URLSearchParams(location.search);
@@ -166,7 +166,7 @@ export default function App() {
           >
             Code
           </button>
-          <ProjectLinks language={language} />
+          <ProjectLinks />
         </nav>
       </header>
       <main className={run || busy ? "has-run" : "welcome"}>
@@ -344,11 +344,10 @@ export default function App() {
             )}
           </section>
         )}
-        <footer>
-          <button onClick={() => setPanel("about")}>About this demo</button>
-          <SignupLink />
-        </footer>
       </main>
+      <footer className="site-footer">
+        <PoweredByRender />
+      </footer>
       {panel === "models" && (
         <Panel title="Live models" close={() => setPanel(null)}>
           <Catalog
@@ -387,6 +386,9 @@ export default function App() {
               <code>{codeLanguage === "typescript" ? tsCode : pyCode}</code>
             </pre>
           </div>
+          <button className="text-button" onClick={() => setPanel("about")}>
+            About this demo
+          </button>
         </Panel>
       )}
       {panel === "about" && (

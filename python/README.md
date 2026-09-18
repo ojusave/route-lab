@@ -9,9 +9,9 @@ Run parallel model comparisons, make a typed choice, and generate an answer. Thi
 [![OpenRouter](https://img.shields.io/badge/OpenRouter-Models-555555?logo=openrouter&logoColor=white)](https://openrouter.ai)
 [![Python](https://img.shields.io/badge/Python-SDK-3776AB?logo=python&logoColor=white)](https://github.com/render-oss/sdk)
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fojusave%2Froute-lab&utm_source=github&utm_medium=referral&utm_campaign=ojus_demos&utm_content=readme_deploy_python)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://dashboard.render.com/login?utm_source=github&utm_medium=referral&utm_campaign=ojus_demos&utm_content=readme_deploy_python&next=%2Fblueprint%2Fnew%3Frepo%3Dhttps%253A%252F%252Fgithub.com%252Fojusave%252Froute-lab%26utm_source%3Dgithub%26utm_medium%3Dreferral%26utm_campaign%3Dojus_demos%26utm_content%3Dreadme_deploy_python%26path%3Dpython%252Frender.yaml)
 
-Set **Blueprint Path** to `python/render.yaml` and leave **Root Directory** empty. Enter `RENDER_API_KEY`, `TYPESAFE_API_KEY`, and `OPENROUTER_API_KEY`. The Blueprint creates a paid web service and Workflow, with the slug wired automatically.
+Enter `RENDER_API_KEY`, `TYPESAFE_API_KEY`, and `OPENROUTER_API_KEY`. The Blueprint creates a paid web service and Workflow, with the slug wired automatically.
 
 ## Local development
 

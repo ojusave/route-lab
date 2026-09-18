@@ -9,6 +9,33 @@ export function renderLink(base: string, content: string, repo?: string) {
   return url.toString();
 }
 
+export function deployLink(
+  language: "typescript" | "python",
+  repository: string,
+  placement = "navbar",
+) {
+  const url = new URL(
+    renderLink(
+      "https://dashboard.render.com/blueprint/new",
+      `${placement}_deploy_${language}`,
+      repository,
+    ),
+  );
+  url.searchParams.set(
+    "path",
+    language === "python" ? "python/render.yaml" : "render.yaml",
+  );
+  // Preserve the Blueprint path through sign-in. The generic deploy redirect drops it.
+  const login = new URL(
+    renderLink(
+      "https://dashboard.render.com/login",
+      `${placement}_deploy_${language}`,
+    ),
+  );
+  login.searchParams.set("next", url.pathname + url.search);
+  return login.toString();
+}
+
 export function githubRepository(value: string) {
   try {
     const url = new URL(value);

@@ -13,7 +13,7 @@ flowchart LR
 
 The parent `answer_prompt` waits for all group tasks before starting the final choice. Every compatible model participates. Child tasks retry twice; the parent does not retry automatically. A new prompt run repeats the work.
 
-The UI polls actual task state once a second. Answers appear when generation finishes. Opening a run URL reconnects to that run; refreshing does not submit it again. The failure option stops the answer task before calling the provider, so its retries do not spend generation credits.
+The UI polls actual task state once a second. Its timeline positions each task using Render's `startedAt` and `completedAt` timestamps. Running bars grow until completion; group bars overlap when tasks run together. Durations include waits and retries, so they are not execution-billing measurements. Retry counts are observed attempts; separate attempt spans are not invented. Answers appear when generation finishes. Opening a run URL reconnects to that run; refreshing does not submit it again. The failure option stops the answer task before calling the provider, so its retries do not spend generation credits.
 
 ## Provider boundary
 
@@ -34,7 +34,7 @@ The comparison view shows actual `Choice` probabilities as each Render task fini
 
 ## Deployment
 
-The root Blueprint deploys TypeScript. `python/render.yaml` deploys Python. Each web service serves a separate frontend build and calls its own Workflow. The two examples share frontend source and the routing policy, but have no runtime dependency on each other.
+The root Blueprint deploys TypeScript. `python/render.yaml` deploys Python. Deploy links preserve `path=render.yaml` or `path=python/render.yaml` in Render's sign-in `next` URL; the generic signed-out deploy redirect drops that path. Signed-in visitors continue to the selected Blueprint. The footer links to Render Workflows with the existing UTM attribution. Each web service serves a separate frontend build and calls its own Workflow. The two examples share frontend source and the routing policy, but have no runtime dependency on each other.
 
 Provider keys stay on the Workflow. The web service needs a Render API key and a Workflow slug. The Blueprint supplies the slug through `fromService`. Auto-deploy is off.
 

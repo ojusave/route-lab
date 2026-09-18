@@ -1,87 +1,93 @@
-import { useState } from "react";
-import { ArrowUpRight, Code } from "lucide-react";
-import { githubRepository, renderLink } from "../../shared/links";
-import type { Language } from "./api";
-import Panel from "./Panel";
+import { useEffect, useRef, useState } from "react";
+import { Code } from "lucide-react";
+import { deployLink, githubRepository, renderLink } from "../../shared/links";
 
 const repository = githubRepository(
   import.meta.env.VITE_REPOSITORY_URL || "https://github.com/ojusave/route-lab",
 );
 const external = { target: "_blank", rel: "noopener noreferrer" } as const;
 
-export function ProjectLinks({ language }: { language: Language }) {
+export function ProjectLinks() {
   const [open, setOpen] = useState(false);
+  const control = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function closeOutside(event: PointerEvent) {
+      if (!control.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("pointerdown", closeOutside);
+    return () => document.removeEventListener("pointerdown", closeOutside);
+  }, [open]);
   return (
-    <>
-      <div className="project-links">
-        {repository ? (
-          <a href={repository} {...external}>
-            <Code size={16} />
-            GitHub
-          </a>
-        ) : (
-          <span
-            className="pending-link"
-            title="This local example does not have a published GitHub repository yet."
-          >
-            <Code size={16} />
-            GitHub <small>unpublished</small>
-          </span>
-        )}
-        <button className="deploy-button" onClick={() => setOpen(true)}>
-          <img src="/render-mark-white.svg" alt="" width="14" height="14" />
-          Deploy to Render
+    <div className="project-links">
+      <a href={repository} {...external}>
+        <Code size={16} />
+        GitHub
+      </a>
+      <div
+        className="deploy-control"
+        ref={control}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget))
+            setOpen(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            setOpen(false);
+            button.current?.focus();
+          }
+        }}
+      >
+        <button
+          ref={button}
+          className="deploy-button"
+          aria-expanded={open}
+          aria-controls="deploy-options"
+          onClick={() => setOpen(!open)}
+        >
+          <img
+            src="https://render.com/images/deploy-to-render-button.svg"
+            alt="Deploy to Render"
+            width="153"
+            height="40"
+          />
         </button>
-      </div>
-      {open && (
-        <Panel title="Deploy this example" close={() => setOpen(false)}>
-          <div className="deploy-panel">
-            <h2>{language === "python" ? "Python" : "TypeScript"} example</h2>
-            <p>
-              One paid web service and one workflow. The other example runs
-              separately.
-            </p>
-            <p>
-              In Render, set <strong>Blueprint Path</strong> to{" "}
-              <code>
-                {language === "python" ? "python/render.yaml" : "render.yaml"}
-              </code>
-              .
-            </p>
-            {repository ? (
+        {open && (
+          <div
+            id="deploy-options"
+            className="deploy-options"
+            role="group"
+            aria-label="Deployment language"
+          >
+            {(["typescript", "python"] as const).map((language) => (
               <a
-                className="secondary"
-                href={renderLink(
-                  "https://render.com/deploy",
-                  `navbar_deploy_${language}`,
-                  repository,
-                )}
+                key={language}
+                href={deployLink(language, repository)}
                 {...external}
+                onClick={() => setOpen(false)}
               >
-                Continue to Render <ArrowUpRight size={15} />
+                {language === "typescript" ? "TypeScript" : "Python"}
               </a>
-            ) : (
-              <p className="fineprint">
-                The source is local. Deployment needs a published GitHub
-                repository.
-              </p>
-            )}
-            <SignupLink />
+            ))}
           </div>
-        </Panel>
-      )}
-    </>
+        )}
+      </div>
+    </div>
   );
 }
 
-export function SignupLink() {
+export function PoweredByRender() {
   return (
     <a
-      className="signup-link"
-      href={renderLink("https://dashboard.render.com/register", "footer_link")}
+      href={renderLink(
+        "https://render.com/docs/workflows",
+        "footer_powered_by",
+      )}
       {...external}
     >
-      Sign up on Render <ArrowUpRight size={14} />
+      <img src="/render-mark.svg" alt="" width="13" height="13" />
+      Powered by Render Workflows
     </a>
   );
 }
