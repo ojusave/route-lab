@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { chromium } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 const base = process.env.DEMO_UI_URL || "http://127.0.0.1:5173";
 const browser = await chromium.launch({ channel: "chrome" });
 const page = await browser.newPage({
@@ -56,9 +56,15 @@ assert.equal(
   false,
 );
 await page.screenshot({ path: "work/game-mobile.png", fullPage: true });
-const fixture = JSON.parse(readFileSync("work/python-game-live.json", "utf8"));
+const fixturePath = [
+  "work/typescript-game-live.json",
+  "work/python-game-live.json",
+].find(existsSync);
+if (!fixturePath)
+  throw new Error("Run tests/live-smoke.mjs against either backend first.");
+const fixture = JSON.parse(readFileSync(fixturePath, "utf8"));
 let snapshot = fixture.first;
-await page.route("**/api/typescript/runs/*", (route) =>
+await page.route(/\/api\/(?:typescript\/|python\/)?runs\/[^/]+$/, (route) =>
   route.fulfill({ json: snapshot }),
 );
 await page.goto(base + "/?sdk=typescript&run=fixture");
