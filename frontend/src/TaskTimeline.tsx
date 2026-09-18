@@ -24,6 +24,7 @@ export default function TaskTimeline({ run, now }: { run: Run; now: number }) {
   const rows = [
     {
       id: run.id,
+      taskName: "answer_prompt",
       label: "Workflow",
       provider: "Render",
       status: run.status,
@@ -34,6 +35,7 @@ export default function TaskTimeline({ run, now }: { run: Run; now: number }) {
     },
     ...chart.rows.map(({ step, start, duration }) => ({
       id: step.id,
+      taskName: step.taskName,
       label: `${labels[step.taskName]?.[0] ?? step.taskName}${step.group ? ` ${step.group}` : ""}`,
       provider: labels[step.taskName]?.[1] ?? "Render",
       status: step.status,
@@ -73,6 +75,7 @@ export default function TaskTimeline({ run, now }: { run: Run; now: number }) {
           return (
             <li
               key={row.id}
+              data-task={row.taskName}
               className={`timeline-row ${state}${row.parent ? " parent" : ""}`}
             >
               <div className="timeline-label">

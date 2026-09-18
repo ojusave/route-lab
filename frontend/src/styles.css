@@ -1143,7 +1143,25 @@ td strong {
   border-bottom: 1px solid var(--line);
 }
 .timeline-row {
+  --bar-fill: #eee6fb;
+  --bar-border: #9470c7;
+  --bar-active: #cbb0f1;
   min-height: 46px;
+}
+.timeline-row[data-task="load_models"] {
+  --bar-fill: #dfeafb;
+  --bar-border: #6282b7;
+  --bar-active: #a9c7ed;
+}
+.timeline-row[data-task="choose_model"] {
+  --bar-fill: #f9ecd2;
+  --bar-border: #a67e35;
+  --bar-active: #e7c37e;
+}
+.timeline-row[data-task="write_answer"] {
+  --bar-fill: #dbede5;
+  --bar-border: #4e8d72;
+  --bar-active: #a3cfbb;
 }
 .timeline-row.parent {
   border-bottom: 1px solid var(--line);
@@ -1185,16 +1203,15 @@ td strong {
   min-width: 2px;
   max-width: 100%;
   border-radius: 3px;
-  border: 1px solid #9b7bc5;
-  background: #eee6fb;
+  border: 1px solid var(--bar-border);
+  background: var(--bar-fill);
 }
 .parent .timeline-bar {
   background: #e4d7f7;
   border-color: #9470c7;
 }
 .running .timeline-bar {
-  background: #cbb0f1;
-  border-color: #8050bf;
+  background: var(--bar-active);
 }
 .failed .timeline-bar {
   background: #fae9e7;
